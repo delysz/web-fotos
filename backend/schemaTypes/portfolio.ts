@@ -1,8 +1,9 @@
+// backend/schemaTypes/portfolio.ts
 import { defineField, defineType } from 'sanity'
 
 export default defineType({
-  name: 'portfolio', // Nombre de la tabla para SQL/GROQ
-  title: 'Portafolio', // Nombre visible en el panel
+  name: 'portfolio',
+  title: 'Portafolio',
   type: 'document',
   fields: [
     defineField({
@@ -14,7 +15,14 @@ export default defineType({
       name: 'imagen',
       title: 'Foto',
       type: 'image',
-      options: { hotspot: true }, // Permite recortar el centro de atención
+      options: { hotspot: true },
+    }),
+    // 👇 AQUÍ ESTÁ LA MAGIA
+    defineField({
+      name: 'categoria',
+      title: 'Categoría',
+      type: 'reference', // <--- Ya no es string, es una referencia
+      to: [{ type: 'categoria' }], // <--- Apunta al archivo que creamos antes
     }),
   ],
 })

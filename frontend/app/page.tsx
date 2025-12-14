@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-
+import Gallery from "./components/Gallery";
 import { client, urlFor } from "@/sanity/client";
 import Image from "next/image";
 
