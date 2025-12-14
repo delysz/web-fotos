@@ -23,7 +23,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen p-10 bg-black text-white">
       <h1 className="text-4xl font-bold mb-10 text-center font-serif">
-        Portafolio de Mamá
+        Marian Foto Estudio
       </h1>
       
       {/* ANTES: Tenías aquí un <div> con un map...
