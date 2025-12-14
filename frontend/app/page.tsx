@@ -1,48 +1,36 @@
 export const dynamic = 'force-dynamic';
-import Gallery from "./components/Gallery";
-import { client, urlFor } from "@/sanity/client";
-import Image from "next/image";
 
-// Definimos la Entidad (DTO)
-interface Foto {
-  _id: string;
-  titulo: string;
-  imagen: any;
-}
+import { client } from "@/sanity/client";
+import Gallery from "./components/Gallery"; // <--- Aquí traemos el Ferrari
 
 // Service: Fetch de datos
 async function getFotos() {
-  // Query GROQ (parecido a SQL)
-  return client.fetch(`*[_type == "portfolio"]`);
+  // Query GROQ
+  // IMPORTANTE: Aquí añadimos la línea de la categoría para que los filtros funcionen
+  return client.fetch(`
+    *[_type == "portfolio"] | order(_createdAt desc) {
+      _id,
+      titulo,
+      imagen,
+      "category": categoria->titulo 
+    }
+  `);
 }
 
 export default async function Home() {
-  const fotos: Foto[] = await getFotos();
+  const fotos = await getFotos();
 
   return (
     <main className="min-h-screen p-10 bg-black text-white">
-      <h1 className="text-4xl font-bold mb-10 text-center">
+      <h1 className="text-4xl font-bold mb-10 text-center font-serif">
         Portafolio de Mamá
       </h1>
       
-      {/* Grid de Fotos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {fotos.map((foto) => (
-          <div key={foto._id} className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-900">
-            {foto.imagen && (
-              <Image 
-                src={urlFor(foto.imagen).width(800).url()}
-                alt={foto.titulo || "Foto"}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            )}
-            <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
-               <p className="text-lg font-medium">{foto.titulo}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* ANTES: Tenías aquí un <div> con un map...
+         AHORA: Usamos el componente Gallery y le pasamos las fotos
+      */}
+      <Gallery fotos={fotos} />
+      
     </main>
   );
 }
