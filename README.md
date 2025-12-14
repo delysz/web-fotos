@@ -64,4 +64,3 @@ El panel de administración permite:
 * Ver cambios en tiempo real.
 
 ---
-Hecho con ❤️ por [Tu Nombre]
