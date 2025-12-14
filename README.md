@@ -1,6 +1,6 @@
 # 📸 Portfolio de Fotografía Profesional
 
-> Una plataforma web moderna, rápida y minimalista diseñada para exponer el trabajo fotográfico de [Nombre de tu Madre].
+> Una plataforma web moderna, rápida y minimalista diseñada para exponer el trabajo fotográfico de mi madre.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38B2AC) ![Sanity](https://img.shields.io/badge/Sanity-v3-F03E2F)
 
