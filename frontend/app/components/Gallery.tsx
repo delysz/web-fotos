@@ -1,178 +1,326 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
 interface Foto {
   _id: string;
   titulo: string;
   imagen: any;
   category: string;
+  width?: number;
+  height?: number;
 }
 
-export default function Gallery({ fotos }: { fotos: Foto[] }) {
-  const [filter, setFilter] = useState('todos');
+interface GalleryProps {
+  fotos: Foto[];
+}
+
+export default function Gallery({ fotos }: GalleryProps) {
+  const [filter, setFilter] = useState<string>('todos');
   const [selectedFoto, setSelectedFoto] = useState<Foto | null>(null);
-  
-  // Nuevo estado: Controla si la imagen HD ya se cargó en el modal
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const rawCategories = fotos.map((f) => f.category).filter((c) => c);
-  const categories = ['todos', ...Array.from(new Set(rawCategories))];
+  // Memorizar categorías
+  const categories = useMemo(() => {
+    const rawCategories = fotos
+      .map((f) => f.category)
+      .filter((c): c is string => Boolean(c));
+    return ['todos', ...Array.from(new Set(rawCategories))];
+  }, [fotos]);
 
-  const filteredFotos = filter === 'todos' 
-    ? fotos 
-    : fotos.filter((f) => f.category === filter);
+  // Memorizar fotos filtradas
+  const filteredFotos = useMemo(() => {
+    return filter === 'todos' 
+      ? fotos 
+      : fotos.filter((f) => f.category === filter);
+  }, [fotos, filter]);
 
-  // Función para evitar el robo (Menú contextual)
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault(); // Bloquea el clic derecho
-  };
+  // Manejar el modal con estado separado para animaciones más limpias
+  const handleOpenModal = useCallback((foto: Foto) => {
+    setIsImageLoaded(false);
+    setSelectedFoto(foto);
+    setIsModalOpen(true);
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    // Restaurar scroll del body
+    document.body.style.overflow = 'unset';
+    // Retrasar el reset para la animación de salida
+    setTimeout(() => setSelectedFoto(null), 300);
+  }, []);
+
+  // Manejar tecla Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCloseModal();
+    };
+    
+    if (isModalOpen) {
+      window.addEventListener('keydown', handleEscape);
+    }
+    
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isModalOpen, handleCloseModal]);
+
+  // Función para proteger imágenes
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
+  // Manejar carga de imagen con error handling
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.error('Error loading image:', e);
+    // Podrías mostrar una imagen de placeholder aquí
+  }, []);
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (isMenuOpen) setIsMenuOpen(false);
+    };
+    
+    if (isMenuOpen) {
+      window.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [isMenuOpen]);
 
   return (
-    <section className="bg-[#0a0a0a] min-h-screen py-20 px-4 sm:px-8 select-none"> {/* select-none evita seleccionar texto */}
-      
-      {/* --- ENCABEZADO --- */}
-      <div className="text-center mb-16 space-y-4">
-        <h2 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
-          Marian <span className="text-gray-600 font-light">&</span> Visual
-        </h2>
-        <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">Portfolio Selecto 2025</p>
-      </div>
+    <LayoutGroup>
+      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col">
+        
+        {/* --- ENCABEZADO --- */}
+        <header className="text-center mb-12 space-y-4">
+          <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
+            Marian <span className="text-gray-600 font-light">&</span> Visual
+          </h1>
+          <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
+            Portfolio Selecto
+          </p>
+          {filteredFotos.length > 0 && (
+            <p className="text-gray-600 text-sm mt-2">
+              {filteredFotos.length} {filteredFotos.length === 1 ? 'imagen' : 'imágenes'}
+            </p>
+          )}
+        </header>
 
-      {/* --- FILTROS --- */}
-      <div className="flex justify-center flex-wrap gap-8 mb-16">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setFilter(cat)}
-            className="relative group py-2"
-          >
-            <span className={`
-              text-xs font-medium tracking-[0.2em] uppercase transition-colors duration-300
-              ${filter === cat ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}
-            `}>
-              {cat}
-            </span>
-            {filter === cat && (
-              <motion.div layoutId="underline" className="absolute left-0 right-0 bottom-0 h-[1px] bg-white" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* --- GRID MASONRY --- */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 max-w-7xl mx-auto space-y-0">
-        <AnimatePresence>
-          {filteredFotos.map((foto) => (
-            <motion.div
-              layoutId={`card-${foto._id}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.4 }}
-              key={foto._id}
-              onClick={() => {
-                setIsImageLoaded(false); // Reseteamos el estado de carga al abrir
-                setSelectedFoto(foto);
+        {/* --- FILTRO DESPLEGABLE --- */}
+        <div className="relative flex justify-center mb-16 z-30">
+          <div className="relative inline-block text-left">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
               }}
-              className="break-inside-avoid mb-4 relative group cursor-pointer"
+              className="flex items-center justify-between gap-3 w-48 px-6 py-3 
+                         bg-neutral-900 border border-neutral-800 rounded-full 
+                         text-white text-xs font-medium tracking-[0.2em] uppercase 
+                         hover:border-neutral-600 transition-colors duration-300
+                         focus:outline-none focus:ring-2 focus:ring-neutral-600"
+              aria-label="Filtrar categorías"
+              aria-expanded={isMenuOpen}
             >
-              <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900">
-                {foto.imagen && (
-                  <Image 
-                    src={urlFor(foto.imagen).width(800).url()}
-                    alt={foto.titulo || "Marian Photography"}
-                    width={800}
-                    height={1000}
-                    // PROTECCIÓN: Bloquea clic derecho y arrastre
-                    onContextMenu={handleContextMenu}
-                    draggable={false} 
-                    className="block w-full h-auto object-cover transition-all duration-700 
-                               grayscale-[20%] contrast-[0.95] 
-                               group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                )}
-                <motion.div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                   <h3 className="text-white font-serif text-sm tracking-wide pointer-events-none">{foto.titulo}</h3>
-                </motion.div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+              <span>{filter}</span>
+              <motion.svg 
+                animate={{ rotate: isMenuOpen ? 180 : 0 }}
+                className="w-4 h-4 text-gray-400" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </motion.svg>
+            </button>
 
-      {/* --- MODAL (LIGHTBOX) --- */}
-      <AnimatePresence>
-        {selectedFoto && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedFoto(null)}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out"
-          >
-            {/* Contenedor de la imagen */}
-            <motion.div
-              layoutId={`card-${selectedFoto._id}`}
-              className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center rounded-md overflow-hidden bg-black shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-               {selectedFoto.imagen && (
-                 <>
-                  {/* SPINNER DE CARGA (Solo visible mientras carga) */}
-                  {!isImageLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center z-0">
-                      <div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div>
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.ul
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute mt-2 w-48 bg-neutral-900 border border-neutral-800 
+                             rounded-xl shadow-2xl overflow-hidden z-40"
+                  role="menu"
+                >
+                  {categories.map((cat) => (
+                    <li key={cat} role="none">
+                      <button
+                        onClick={() => {
+                          setFilter(cat);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`
+                          w-full text-left px-6 py-3 text-xs tracking-[0.2em] uppercase 
+                          transition-colors duration-200 focus:outline-none focus:bg-neutral-800
+                          ${filter === cat 
+                            ? 'bg-white text-black font-bold' 
+                            : 'text-gray-400 hover:bg-neutral-800 hover:text-white'}
+                        `}
+                        role="menuitem"
+                      >
+                        {cat}
+                      </button>
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* --- GRID MASONRY --- */}
+        <div className="flex-grow">
+          {filteredFotos.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-500">No hay imágenes en esta categoría</p>
+            </div>
+          ) : (
+            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 max-w-7xl mx-auto space-y-0">
+              <AnimatePresence mode="popLayout">
+                {filteredFotos.map((foto) => (
+                  <motion.article
+                    layoutId={`card-${foto._id}`}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    key={foto._id}
+                    className="break-inside-avoid mb-4 relative group cursor-pointer"
+                  >
+                    <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900">
+                      {foto.imagen && (
+                        <Image 
+                          src={urlFor(foto.imagen).width(800).quality(80).url()}
+                          alt={foto.titulo || "Fotografía de Marian Visual"}
+                          width={foto.width || 800}
+                          height={foto.height || 1000}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          onContextMenu={handleContextMenu}
+                          onError={handleImageError}
+                          draggable={false}
+                          loading="lazy"
+                          className="block w-full h-auto object-cover transition-all duration-500 
+                                     grayscale-[20%] contrast-[0.95] 
+                                     group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-[1.02]"
+                        />
+                      )}
+                      <motion.div 
+                        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent 
+                                   opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                                   flex items-end p-4 pointer-events-none"
+                      >
+                        <div>
+                          <h3 className="text-white font-serif text-sm tracking-wide">
+                            {foto.titulo}
+                          </h3>
+                          <p className="text-gray-300 text-xs mt-1 uppercase tracking-wider">
+                            {foto.category}
+                          </p>
+                        </div>
+                      </motion.div>
                     </div>
-                  )}
+                  </motion.article>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
-                  {/* IMAGEN HD */}
-                  <Image 
-                    src={urlFor(selectedFoto.imagen).width(1600).url()}
-                    alt={selectedFoto.titulo}
-                    width={1600}
-                    height={1200}
-                    quality={90}
-                    // PROTECCIÓN:
-                    onContextMenu={handleContextMenu}
-                    draggable={false}
-                    // LÓGICA DE CARGA:
-                    onLoadingComplete={() => setIsImageLoaded(true)}
-                    className={`
-                      w-full h-full object-contain max-h-[90vh] mx-auto z-10 transition-opacity duration-500
-                      ${isImageLoaded ? 'opacity-100' : 'opacity-0'} 
-                    `}
-                  />
-                 </>
-               )}
-               
-               {/* INFO (Solo aparece cuando la imagen ha cargado) */}
-               {isImageLoaded && (
-                 <>
-                   <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20 pointer-events-none">
-                      <h2 className="text-2xl text-white font-serif">{selectedFoto.titulo}</h2>
-                      <p className="text-gray-400 text-sm uppercase tracking-widest mt-1">{selectedFoto.category}</p>
-                   </div>
+        {/* --- FOOTER --- */}
+        <footer className="mt-20 pt-8 border-t border-neutral-900 text-center">
+          <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">
+            &copy; {new Date().getFullYear()} Marian Visual. Todos los derechos reservados.
+          </p>
+          <p className="text-neutral-700 text-[9px] mt-2">
+            Prohibida la reproducción total o parcial sin autorización escrita.
+          </p>
+        </footer>
 
-                   <button 
-                     onClick={() => setSelectedFoto(null)}
-                     className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-30"
-                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+        {/* --- MODAL (LIGHTBOX) --- */}
+        <AnimatePresence>
+          {isModalOpen && selectedFoto && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseModal}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-title"
+            >
+              <motion.div
+                layoutId={`card-${selectedFoto._id}`}
+                className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center rounded-md overflow-hidden bg-black shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {selectedFoto.imagen && (
+                  <>
+                    {!isImageLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center z-0">
+                        <div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div>
+                      </div>
+                    )}
+
+                    <Image 
+                      src={urlFor(selectedFoto.imagen).width(1920).quality(90).url()}
+                      alt={selectedFoto.titulo}
+                      width={1920}
+                      height={1080}
+                      quality={90}
+                      priority
+                      onContextMenu={handleContextMenu}
+                      onError={handleImageError}
+                      draggable={false}
+                      onLoadingComplete={() => setIsImageLoaded(true)}
+                      className={`
+                        w-full h-full object-contain max-h-[90vh] mx-auto z-10 
+                        transition-opacity duration-500
+                        ${isImageLoaded ? 'opacity-100' : 'opacity-0'} 
+                      `}
+                    />
+                  </>
+                )}
+                
+                {isImageLoaded && (
+                  <>
+                    <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20 pointer-events-none">
+                      <h2 id="modal-title" className="text-2xl text-white font-serif">
+                        {selectedFoto.titulo}
+                      </h2>
+                      <p className="text-gray-400 text-sm uppercase tracking-widest mt-1">
+                        {selectedFoto.category}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={handleCloseModal}
+                      className="absolute top-4 right-4 text-white/70 hover:text-white 
+                                 transition-colors z-30 p-2 rounded-full hover:bg-black/30"
+                      aria-label="Cerrar modal"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+                           strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                     </svg>
-                   </button>
-                 </>
-               )}
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-    </section>
+          )}
+        </AnimatePresence>
+      </section>
+    </LayoutGroup>
   );
 }
