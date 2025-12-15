@@ -316,19 +316,19 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* DRAWER PERFIL / CONTACTO */}
+        {/* DRAWER PERFIL / CONTACTO (CORREGIDO SCROLL) */}
         <AnimatePresence>
           {isContactOpen && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/60 z-[70]" />
-              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl p-10 flex flex-col justify-between" onClick={(e) => e.stopPropagation()}>
+              
+              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 
-                <button onClick={toggleContact} className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col h-full mt-10">
+                <button onClick={toggleContact} className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800 z-50"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+
+                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col min-h-full p-10 pt-20">
                   <motion.div variants={itemVariants}>
                     
-                    {/* FOTO DE PERFIL AÑADIDA AQUÍ */}
                     <div className="mb-8 relative w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-800 group">
                          <Image 
                             src="/perfil.jpg" 
@@ -336,7 +336,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                             fill 
                             className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                             onError={(e) => {
-                                // Fallback por si no encuentra la foto: oculta el contenedor
                                 (e.target as HTMLElement).style.display = 'none';
                                 (e.target as HTMLElement).parentElement!.style.display = 'none';
                             }}
