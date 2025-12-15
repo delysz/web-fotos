@@ -8,8 +8,7 @@
 
 > **Portfolio minimalista y de alto rendimiento diseñado para una artista visual.** > Enfocado en la experiencia de usuario (UX), animaciones fluidas y una gestión de contenido headless.
 
-🔗 **[Ver Demo en Vivo](https://marianfotografia.vercel.app)** *(Asegúrate de cambiar este enlace por el tuyo real)*
-
+🔗 **[Ver Web en Vivo](https://marianfotografia.vercel.app)**
 ---
 
 ## 🖼️ Sobre el Proyecto
