@@ -177,6 +177,29 @@ export default function Gallery({ fotos }: GalleryProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, isContactOpen, handleCloseModal, goToNext, goToPrevious]);
+  
+// --- EASTER EGG ---
+  useEffect(() => {
+    // Evitamos que se ejecute dos veces en modo desarrollo de React 18
+    const hasRun = sessionStorage.getItem('easter_egg_shown');
+    if (!hasRun) {
+      console.log(
+        `%c
+        📷 MARIAN FOTOGRAFÍA
+        ----------------------------------------
+        Explorando la naturaleza y el código.
+        
+        🎨 Arte: Marian
+        💻 Dev:  Delysz (https://github.com/delysz)
+        
+        "La fotografía ayuda a las personas a ver."
+        ----------------------------------------
+        `,
+        'font-family: monospace; font-size: 12px; color: #d4d4d4; background: #171717; padding: 15px; border-radius: 5px; border-left: 4px solid #fff;'
+      );
+      sessionStorage.setItem('easter_egg_shown', 'true');
+    }
+  }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => e.preventDefault(), []);
 
