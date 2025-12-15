@@ -5,12 +5,31 @@ import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
 import { motion, AnimatePresence, LayoutGroup, Variants } from 'framer-motion';
 
-// --- INTERFACES ---
-interface Foto {
+// --- INTERFACES STRICT TYPING ---
+interface SanityPalette {
+  dominant?: {
+    background?: string;
+  };
+}
+
+interface SanityMetadata {
+  palette?: SanityPalette;
+}
+
+interface SanityAsset {
+  url: string;
+  metadata?: SanityMetadata;
+}
+
+interface SanityImage {
+  asset: SanityAsset;
+}
+
+export interface Foto {
   _id: string;
   titulo: string;
-  imagen: any;
   category: string;
+  imagen: SanityImage; // Tipado estricto para nuestra lógica de color
   width?: number;
   height?: number;
 }
@@ -19,32 +38,58 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
+// --- UTILIDAD: HEX a HUE (Color a Número 0-360) ---
+function getHue(hex: string): number {
+  // Si no hay hex o es inválido, devolvemos 0 (Rojo/Neutro)
+  if (!hex || typeof hex !== 'string') return 0;
+  
+  // Eliminamos el '#' si existe para asegurar limpieza
+  const cleanHex = hex.replace('#', '');
+  
+  let r = 0, g = 0, b = 0;
+
+  // Convertir hex a RGB
+  if (cleanHex.length === 3) {
+    r = parseInt("0x" + cleanHex[0] + cleanHex[0]);
+    g = parseInt("0x" + cleanHex[1] + cleanHex[1]);
+    b = parseInt("0x" + cleanHex[2] + cleanHex[2]);
+  } else if (cleanHex.length === 6) {
+    r = parseInt("0x" + cleanHex.substring(0, 2));
+    g = parseInt("0x" + cleanHex.substring(2, 4));
+    b = parseInt("0x" + cleanHex.substring(4, 6));
+  }
+
+  r /= 255; g /= 255; b /= 255;
+  const cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin;
+  let h = 0;
+
+  if (delta === 0) h = 0;
+  else if (cmax === r) h = ((g - b) / delta) % 6;
+  else if (cmax === g) h = (b - r) / delta + 2;
+  else h = (r - g) / delta + 4;
+
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+
+  return h;
+}
+
 // --- VARIANTES DE ANIMACIÓN ---
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0.5 },
-  visible: { 
-    x: '0%', 
-    opacity: 1,
-    transition: { type: 'spring', damping: 30, stiffness: 300 } 
-  },
+  visible: { x: '0%', opacity: 1, transition: { type: 'spring', damping: 30, stiffness: 300 } },
   exit: { x: '100%', opacity: 0, transition: { ease: 'easeInOut', duration: 0.3 } }
 };
-
 const itemVariants: Variants = {
   hidden: { y: 20, opacity: 0 },
   visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
 };
-
 const containerVariants: Variants = {
   visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
 };
-
 const photoCardVariants: Variants = {
   hidden: { opacity: 0, y: 50, scale: 0.95 },
-  visible: { 
-    opacity: 1, y: 0, scale: 1,
-    transition: { type: "spring", stiffness: 100, damping: 20 }
-  },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 100, damping: 20 } },
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
 };
 
@@ -56,17 +101,25 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
-  // Memorizar categorías
   const categories = useMemo(() => {
     const rawCategories = fotos.map((f) => f.category).filter((c): c is string => Boolean(c));
     return ['todos', ...Array.from(new Set(rawCategories))];
   }, [fotos]);
 
+  // --- LÓGICA DE ORDENAMIENTO POR COLOR ---
   const filteredFotos = useMemo(() => {
-    return filter === 'todos' ? fotos : fotos.filter((f) => f.category === filter);
+    const filtered = filter === 'todos' ? fotos : fotos.filter((f) => f.category === filter);
+    
+    // Creamos una copia con [...filtered] para no mutar el array original (buena práctica en React)
+    return [...filtered].sort((a, b) => {
+      // TypeScript Safe Access: Usamos Optional Chaining (?.) y valores por defecto
+      const colorA = a.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
+      const colorB = b.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
+      
+      return getHue(colorA) - getHue(colorB);
+    });
   }, [fotos, filter]);
 
-  // --- NAVEGACIÓN ---
   const handleOpenModal = useCallback((foto: Foto) => {
     const index = filteredFotos.findIndex(f => f._id === foto._id);
     setCurrentIndex(index);
@@ -76,7 +129,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     document.body.style.overflow = 'hidden';
   }, [filteredFotos]);
 
-  const goToNext = useCallback((e?: Event) => {
+  const goToNext = useCallback((e?: React.MouseEvent | Event) => {
     e?.stopPropagation();
     if (currentIndex === -1 || filteredFotos.length === 0) return;
     const nextIndex = (currentIndex + 1) % filteredFotos.length;
@@ -85,7 +138,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     setIsImageLoaded(false);
   }, [currentIndex, filteredFotos]);
 
-  const goToPrevious = useCallback((e?: Event) => {
+  const goToPrevious = useCallback((e?: React.MouseEvent | Event) => {
     e?.stopPropagation();
     if (currentIndex === -1 || filteredFotos.length === 0) return;
     const prevIndex = currentIndex === 0 ? filteredFotos.length - 1 : currentIndex - 1;
@@ -131,70 +184,41 @@ export default function Gallery({ fotos }: GalleryProps) {
     <LayoutGroup>
       <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden">
         
-        {/* --- ENCABEZADO --- */}
+        {/* HEADER */}
         <header className="relative text-center mb-16 space-y-4 z-10">
           <div className="absolute top-0 right-0 hidden md:block z-50">
-            <button 
-              onClick={toggleContact}
-              className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto"
-            >
+            <button onClick={toggleContact} className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto">
               <span>Contacto</span>
               <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${isContactOpen ? 'bg-white' : 'bg-transparent border border-gray-600 group-hover:border-white'}`}></span>
             </button>
           </div>
-
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}>
             <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90 relative z-0">
               Marian <span className="text-gray-600 font-light">&</span> Fotografía
             </h1>
-            <p className="text-gray-500 text-xs tracking-[0.3em] uppercase relative z-0 mt-4">
-              Portfolio Selecto
-            </p>
+            <p className="text-gray-500 text-xs tracking-[0.3em] uppercase relative z-0 mt-4">Portfolio Selecto</p>
           </motion.div>
-          
           <div className="md:hidden pt-4 relative z-50">
-             <button onClick={toggleContact} className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors">
-              Contacto
-            </button>
+             <button onClick={toggleContact} className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors">Contacto</button>
           </div>
         </header>
 
-        {/* --- NUEVO FILTRO: TEXTO LIMPIO ALINEADO A LA DERECHA --- */}
-        {/* Usamos max-w-7xl para alinearlo con el grid de fotos */}
+        {/* FILTRO DERECHA */}
         <div className="w-full max-w-7xl mx-auto mb-8 px-1 z-40">
-            <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-                className="flex flex-wrap justify-center md:justify-end gap-6 md:gap-8"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="flex flex-wrap justify-center md:justify-end gap-6 md:gap-8">
                 {categories.map((cat) => (
-                    <button
-                        key={cat}
-                        onClick={() => setFilter(cat)}
-                        className={`
-                            text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer relative
-                            ${filter === cat ? 'text-white' : 'text-gray-600 hover:text-gray-400'}
-                        `}
-                    >
+                    <button key={cat} onClick={() => setFilter(cat)} className={`text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer relative ${filter === cat ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}>
                         {cat}
-                        {/* Pequeña línea debajo del activo */}
-                        {filter === cat && (
-                            <motion.div 
-                                layoutId="activeFilter"
-                                className="absolute -bottom-2 left-0 right-0 h-[1px] bg-white"
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            />
-                        )}
+                        {filter === cat && (<motion.div layoutId="activeFilter" className="absolute -bottom-2 left-0 right-0 h-[1px] bg-white" transition={{ type: "spring", stiffness: 300, damping: 30 }} />)}
                     </button>
                 ))}
             </motion.div>
         </div>
 
-        {/* --- GRID FOTOS --- */}
+        {/* GRID */}
         <div className="flex-grow z-0">
           {filteredFotos.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-gray-500">No hay imágenes en esta categoría</p>
-            </div>
+            <div className="text-center py-20"><p className="text-gray-500">No hay imágenes en esta categoría</p></div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
@@ -211,7 +235,8 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-4 border-white shadow-sm hover:shadow-white/20 transition-shadow duration-300">
                       {foto.imagen && (
                         <Image 
-                          src={urlFor(foto.imagen).width(800).height(800).fit('crop').url()}
+                          // ¡OJO! 'as any' aquí es clave para que TS no se pelee con Sanity
+                          src={urlFor(foto.imagen as any).width(800).height(800).fit('crop').url()}
                           alt={foto.titulo || "Fotografía de Marian"}
                           width={800} height={800}
                           onContextMenu={handleContextMenu} draggable={false} 
@@ -232,36 +257,29 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </div>
 
-        {/* --- FOOTER --- */}
+        {/* FOOTER */}
         <footer className="mt-20 pt-8 border-t border-neutral-900 text-center space-y-2 z-10">
           <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">&copy; {new Date().getFullYear()} Marian Fotografía. Todos los derechos reservados.</p>
           <p className="text-neutral-700 text-[9px]">Prohibida la reproducción total o parcial sin autorización escrita.</p>
           <a href="https://github.com/delysz" target="_blank" rel="noopener noreferrer" className="inline-block text-neutral-500 text-[9px] tracking-[0.1em] hover:text-neutral-300 transition-colors pt-2 cursor-pointer">design by Delysz</a>
         </footer>
 
-        {/* --- MODAL FOTO --- */}
+        {/* MODAL */}
         <AnimatePresence>
           {isModalOpen && selectedFoto && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={handleCloseModal}
-              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out"
-            >
-              {filteredFotos.length > 1 && (
-                <button onClick={(e) => { e.stopPropagation(); goToPrevious(); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-                </button>
-              )}
-              {filteredFotos.length > 1 && (
-                <button onClick={(e) => { e.stopPropagation(); goToNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                </button>
-              )}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out">
+              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>)}
+              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToNext(e); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>)}
               <motion.div layoutId={`card-${selectedFoto._id}`} className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 {selectedFoto.imagen && (
                   <>
                     {!isImageLoaded && (<div className="absolute inset-0 flex items-center justify-center z-0"><div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div></div>)}
-                    <Image key={selectedFoto._id} src={urlFor(selectedFoto.imagen).width(1920).quality(90).url()} alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-full object-contain max-h-[90vh] mx-auto z-10 transition-opacity duration-500 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}/>
+                    <Image 
+                      key={selectedFoto._id} 
+                      // Aquí también usamos 'as any' para el modal
+                      src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).url()} 
+                      alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-full object-contain max-h-[90vh] mx-auto z-10 transition-opacity duration-500 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    />
                   </>
                 )}
                 {isImageLoaded && (<button onClick={handleCloseModal} className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors z-30 p-2 rounded-full bg-black/20 hover:bg-black/50 cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>)}
@@ -270,7 +288,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* --- DRAWER CONTACTO --- */}
+        {/* DRAWER CONTACTO */}
         <AnimatePresence>
           {isContactOpen && (
             <>
@@ -282,9 +300,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Marian</h2>
                     <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Visual Artist & Photographer</p>
                   </motion.div>
-                  <motion.div variants={itemVariants} className="mb-12">
-                    <p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p>
-                  </motion.div>
+                  <motion.div variants={itemVariants} className="mb-12"><p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p></motion.div>
                   <motion.div variants={itemVariants} className="space-y-4">
                      <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
                      <a href="https://instagram.com" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_fotografia</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
@@ -296,7 +312,6 @@ export default function Gallery({ fotos }: GalleryProps) {
             </>
           )}
         </AnimatePresence>
-
       </section>
     </LayoutGroup>
   );
