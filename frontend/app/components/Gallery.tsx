@@ -12,6 +12,7 @@ interface Foto {
   category: string;
   width?: number;
   height?: number;
+  aspectRatio?: number;
 }
 
 interface GalleryProps {
@@ -25,7 +26,11 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Memorizar categorías
+  // Establecer tamaño fijo para todas las imágenes
+  const IMAGE_WIDTH = 400;
+  const IMAGE_HEIGHT = 500;
+
+  // Memoizar categorías
   const categories = useMemo(() => {
     const rawCategories = fotos
       .map((f) => f.category)
@@ -33,27 +38,24 @@ export default function Gallery({ fotos }: GalleryProps) {
     return ['todos', ...Array.from(new Set(rawCategories))];
   }, [fotos]);
 
-  // Memorizar fotos filtradas
+  // Memoizar fotos filtradas
   const filteredFotos = useMemo(() => {
     return filter === 'todos' 
       ? fotos 
       : fotos.filter((f) => f.category === filter);
   }, [fotos, filter]);
 
-  // Manejar el modal con estado separado para animaciones más limpias
+  // Manejar el modal
   const handleOpenModal = useCallback((foto: Foto) => {
     setIsImageLoaded(false);
     setSelectedFoto(foto);
     setIsModalOpen(true);
-    // Prevenir scroll del body
     document.body.style.overflow = 'hidden';
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
-    // Restaurar scroll del body
     document.body.style.overflow = 'unset';
-    // Retrasar el reset para la animación de salida
     setTimeout(() => setSelectedFoto(null), 300);
   }, []);
 
@@ -95,14 +97,14 @@ export default function Gallery({ fotos }: GalleryProps) {
 
   return (
     <LayoutGroup>
-      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col">
+      <section className="gallery-container">
         
         {/* --- ENCABEZADO --- */}
-        <header className="text-center mb-12 space-y-4">
-          <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
-            Marian <span className="text-gray-600 font-light">&</span> Fotografía
+        <header className="gallery-header">
+          <h1 className="gallery-title">
+            Marian <span className="text-gray-600 font-light">&</span> Visual
           </h1>
-          <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
+          <p className="gallery-subtitle">
             Portfolio Selecto
           </p>
           {filteredFotos.length > 0 && (
@@ -178,14 +180,14 @@ export default function Gallery({ fotos }: GalleryProps) {
           </div>
         </div>
 
-        {/* --- GRID MASONRY --- */}
+        {/* --- GRID CON TAMAÑOS UNIFORMES --- */}
         <div className="flex-grow">
           {filteredFotos.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-500">No hay imágenes en esta categoría</p>
             </div>
           ) : (
-            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 max-w-7xl mx-auto space-y-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
                 {filteredFotos.map((foto) => (
                   <motion.article
@@ -195,40 +197,44 @@ export default function Gallery({ fotos }: GalleryProps) {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     key={foto._id}
-                    onClick={() => handleOpenModal(foto)} // <--- ¡AQUÍ ESTÁ LA CORRECCIÓN!
-                    className="break-inside-avoid mb-4 relative group cursor-pointer"
+                    onClick={() => handleOpenModal(foto)}
+                    className="photo-card"
                   >
-                    <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900">
+                    {/* Contenedor con tamaño fijo y marco */}
+                    <div className="relative w-full h-[500px] overflow-hidden bg-neutral-900 
+                                  border-4 border-neutral-800 rounded-lg p-1 group">
                       {foto.imagen && (
-                        <Image 
-                          src={urlFor(foto.imagen).width(800).quality(80).url()}
-                          alt={foto.titulo || "Fotografía de Marian Visual"}
-                          width={foto.width || 800}
-                          height={foto.height || 1000}
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                          onContextMenu={handleContextMenu}
-                          onError={handleImageError}
-                          draggable={false} 
-                          loading="lazy"
-                          className="block w-full h-auto object-cover transition-all duration-500 
-                                     grayscale-[20%] contrast-[0.95] 
-                                     group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-[1.02]"
-                        />
-                      )}
-                      <motion.div 
-                        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent 
-                                   opacity-0 group-hover:opacity-100 transition-opacity duration-300 
-                                   flex items-end p-4 pointer-events-none"
-                      >
-                        <div>
-                          <h3 className="text-white font-serif text-sm tracking-wide">
-                            {foto.titulo}
-                          </h3>
-                          <p className="text-gray-300 text-xs mt-1 uppercase tracking-wider">
-                            {foto.category}
-                          </p>
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <Image 
+                            src={urlFor(foto.imagen).width(IMAGE_WIDTH).quality(85).url()}
+                            alt={foto.titulo || "Fotografía de Marian Visual"}
+                            width={IMAGE_WIDTH}
+                            height={IMAGE_HEIGHT}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                            onContextMenu={handleContextMenu}
+                            onError={handleImageError}
+                            draggable={false} 
+                            loading="lazy"
+                            className="photo-img object-contain w-full h-full p-2"
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '100%'
+                            }}
+                          />
+                          
+                          {/* Overlay mejorado */}
+                          <div className="photo-overlay">
+                            <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-transparent to-transparent">
+                              <span className="photo-category block">
+                                {foto.category}
+                              </span>
+                              <h3 className="photo-name text-white font-serif text-lg">
+                                {foto.titulo}
+                              </h3>
+                            </div>
+                          </div>
                         </div>
-                      </motion.div>
+                      )}
                     </div>
                   </motion.article>
                 ))}
@@ -240,7 +246,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         {/* --- FOOTER --- */}
         <footer className="mt-20 pt-8 border-t border-neutral-900 text-center">
           <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">
-            &copy; {new Date().getFullYear()} Marian Fotografía. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} Marian Visual. Todos los derechos reservados.
           </p>
           <p className="text-neutral-700 text-[9px] mt-2">
             Prohibida la reproducción total o parcial sin autorización escrita.
@@ -262,7 +268,7 @@ export default function Gallery({ fotos }: GalleryProps) {
             >
               <motion.div
                 layoutId={`card-${selectedFoto._id}`}
-                className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center rounded-md overflow-hidden bg-black shadow-2xl"
+                className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center rounded-lg overflow-hidden bg-black shadow-2xl border-2 border-neutral-800"
                 onClick={(e) => e.stopPropagation()}
               >
                 {selectedFoto.imagen && (
@@ -285,7 +291,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                       draggable={false}
                       onLoadingComplete={() => setIsImageLoaded(true)}
                       className={`
-                        w-full h-full object-contain max-h-[90vh] mx-auto z-10 
+                        w-full h-full object-contain max-h-[90vh] mx-auto z-10 p-8
                         transition-opacity duration-500
                         ${isImageLoaded ? 'opacity-100' : 'opacity-0'} 
                       `}
