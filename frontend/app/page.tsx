@@ -5,21 +5,20 @@ import Gallery from "./components/Gallery";
 
 // Service: Fetch de datos
 async function getFotos() {
-  // Usamos comillas invertidas (backticks) directas para evitar el error de importación de 'groq'
   return client.fetch(`
     *[_type == "portfolio"] | order(_createdAt desc) {
       _id,
       titulo,
       
-      // 1. MANTENEMOS TU LÓGICA DE CATEGORÍA
-      "category": categoria->titulo,
+      // 👇 AQUI ESTA EL CAMBIO:
+      // Antes era: "category": categoria->titulo
+      // Ahora buscamos en la lista (array):
+      "categories": categorias[]->titulo, 
       
-      // 2. AÑADIMOS LA ESTRUCTURA COMPLETA DE IMAGEN PARA EL COLOR
       imagen {
         asset->{
           _id,
           url,
-          // Esto es lo que necesita el Gallery.tsx para ordenar por color:
           metadata {
             palette {
               dominant {
