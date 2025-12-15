@@ -19,6 +19,35 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
+// --- VARIANTES DE ANIMACIÓN (Para que se vea PRO) ---
+const drawerVariants = {
+  hidden: { x: '100%', opacity: 0.5 },
+  visible: { 
+    x: '0%', 
+    opacity: 1,
+    transition: { type: 'spring', damping: 25, stiffness: 200 } 
+  },
+  exit: { 
+    x: '100%', 
+    opacity: 0, 
+    transition: { ease: 'easeInOut', duration: 0.3 } 
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1 }
+};
+
+const containerVariants = {
+  visible: {
+    transition: {
+      staggerChildren: 0.1, // Efecto cascada: aparece uno tras otro
+      delayChildren: 0.2
+    }
+  }
+};
+
 export default function Gallery({ fotos }: GalleryProps) {
   const [filter, setFilter] = useState<string>('todos');
   const [selectedFoto, setSelectedFoto] = useState<Foto | null>(null);
@@ -42,7 +71,7 @@ export default function Gallery({ fotos }: GalleryProps) {
       : fotos.filter((f) => f.category === filter);
   }, [fotos, filter]);
 
-  // Manejadores de Modal FOTO
+  // Manejadores
   const handleOpenModal = useCallback((foto: Foto) => {
     setIsImageLoaded(false);
     setSelectedFoto(foto);
@@ -56,9 +85,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     setTimeout(() => setSelectedFoto(null), 300);
   }, []);
 
-  // Manejador de Modal CONTACTO
   const toggleContact = useCallback(() => {
-    // Invertimos el estado anterior
     setIsContactOpen(prev => {
       const newState = !prev;
       document.body.style.overflow = newState ? 'hidden' : 'unset';
@@ -66,7 +93,6 @@ export default function Gallery({ fotos }: GalleryProps) {
     });
   }, []);
 
-  // Tecla Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -81,37 +107,28 @@ export default function Gallery({ fotos }: GalleryProps) {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isModalOpen, isContactOpen, handleCloseModal]);
 
-  // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = () => { if (isMenuOpen) setIsMenuOpen(false); };
     if (isMenuOpen) window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   }, [isMenuOpen]);
 
-  // Prevenir menú contextual
   const handleContextMenu = useCallback((e: React.MouseEvent) => e.preventDefault(), []);
 
   return (
     <LayoutGroup>
-      {/* IMPORTANTE: Usamos clases de Tailwind directas aquí para evitar conflictos con tu CSS antiguo.
-         'select-none' evita que se seleccione el texto.
-      */}
-      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative">
+      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden">
         
         {/* --- ENCABEZADO --- */}
         <header className="relative text-center mb-12 space-y-4 z-10">
-          
-          {/* BOTÓN CONTACTO (ARREGLADO)
-             - z-50: Asegura que esté por encima de todo.
-             - cursor-pointer: Fuerza el cursor de mano.
-             - pointer-events-auto: Asegura que reciba el clic.
-          */}
           <div className="absolute top-0 right-0 hidden md:block z-50">
             <button 
               onClick={toggleContact}
-              className="text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors border-b border-transparent hover:border-white pb-1 cursor-pointer pointer-events-auto"
+              className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto"
             >
-              Contacto
+              <span>Contacto</span>
+              {/* Pequeño punto indicador */}
+              <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${isContactOpen ? 'bg-white' : 'bg-transparent border border-gray-600 group-hover:border-white'}`}></span>
             </button>
           </div>
 
@@ -122,18 +139,17 @@ export default function Gallery({ fotos }: GalleryProps) {
             Portfolio Selecto
           </p>
           
-          {/* Botón contacto para móvil */}
           <div className="md:hidden pt-4 relative z-50">
              <button 
               onClick={toggleContact}
-              className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer"
+              className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors"
             >
               Contacto
             </button>
           </div>
         </header>
 
-        {/* --- FILTRO DESPLEGABLE --- */}
+        {/* --- FILTRO --- */}
         <div className="relative flex justify-center mb-16 z-40">
           <div className="relative inline-block text-left">
             <button
@@ -192,14 +208,13 @@ export default function Gallery({ fotos }: GalleryProps) {
           </div>
         </div>
 
-        {/* --- GRID UNIFORME (CUADRADOS CON MARCO) --- */}
+        {/* --- GRID FOTOS --- */}
         <div className="flex-grow z-0">
           {filteredFotos.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-500">No hay imágenes en esta categoría</p>
             </div>
           ) : (
-            // GRID GRID-COLS (No usamos Masonry del CSS, usamos Grid nativo)
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
                 {filteredFotos.map((foto) => (
@@ -213,7 +228,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                     onClick={() => handleOpenModal(foto)}
                     className="relative group cursor-pointer"
                   >
-                    {/* ASPECT-SQUARE fuerza el cuadrado perfecto */}
                     <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-4 border-white shadow-sm hover:shadow-white/20 transition-shadow duration-300">
                       {foto.imagen && (
                         <Image 
@@ -319,49 +333,110 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* --- MODAL CONTACTO --- */}
+        {/* --- PANEL DESLIZANTE DE CONTACTO (PROFESIONAL) --- */}
         <AnimatePresence>
           {isContactOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={toggleContact}
-              className="fixed inset-0 z-[70] flex items-center justify-center bg-neutral-950/98 p-6"
-            >
+            <>
+              {/* Overlay oscuro (SIN BLUR, solo oscurece) */}
               <motion.div
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 20, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="max-w-md w-full text-center space-y-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={toggleContact}
+                className="fixed inset-0 bg-black/60 z-[70]"
+              />
+
+              {/* Panel lateral derecho (Drawer) */}
+              <motion.aside
+                variants={drawerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl p-10 flex flex-col justify-between"
+                onClick={(e) => e.stopPropagation()} // Evitar cerrar al hacer clic dentro
               >
-                <h2 className="text-3xl font-serif text-white tracking-widest uppercase">
-                  Marian Fotografía
-                </h2>
-                <p className="text-gray-400 font-light leading-relaxed">
-                  Capturando la esencia de los momentos efímeros. Especializada en fotografía de retrato y paisaje.
-                </p>
-                <div className="w-16 h-[1px] bg-neutral-800 mx-auto"></div>
-                <div className="space-y-4">
-                  <a href="mailto:hola@ejemplo.com" className="block text-white text-lg hover:text-gray-300 transition-colors tracking-wide cursor-pointer">
-                    hola@marianfoto.com
-                  </a>
-                  <a href="#" className="block text-white text-lg hover:text-gray-300 transition-colors tracking-wide cursor-pointer">
-                    @marian_fotografia
-                  </a>
-                </div>
-                <p className="text-xs text-neutral-600 uppercase tracking-[0.2em] pt-8">
-                  Zaragoza, España
-                </p>
+                {/* Botón Cerrar (X) */}
                 <button 
                   onClick={toggleContact}
-                  className="mt-12 text-gray-500 hover:text-white text-xs uppercase tracking-widest border border-gray-800 px-6 py-3 rounded-full hover:border-white transition-all cursor-pointer"
+                  className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800"
                 >
-                  Cerrar
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-              </motion.div>
-            </motion.div>
+
+                {/* Contenido animado en cascada */}
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="flex flex-col h-full mt-10"
+                >
+                  {/* Título */}
+                  <motion.div variants={itemVariants}>
+                    <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">
+                      Marian
+                    </h2>
+                    <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">
+                      Visual Artist & Photographer
+                    </p>
+                  </motion.div>
+                  
+                  {/* Bio */}
+                  <motion.div variants={itemVariants} className="mb-12">
+                    <p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">
+                      Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro, buscando siempre la textura, el color y el detalle orgánico que a menudo pasa desapercibido.
+                    </p>
+                  </motion.div>
+
+                  {/* Links Interactivos (Estilo Tarjeta) */}
+                  <motion.div variants={itemVariants} className="space-y-4">
+                    <a 
+                      href="mailto:hola@marianfoto.com" 
+                      className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-neutral-950 rounded-md text-gray-400 group-hover:text-white transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                          </svg>
+                        </div>
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span>
+                      </div>
+                      <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                    </a>
+
+                    <a 
+                      href="https://instagram.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center gap-4">
+                         <div className="p-2 bg-neutral-950 rounded-md text-gray-400 group-hover:text-white transition-colors">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                        </div>
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_fotografia</span>
+                      </div>
+                      <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                    </a>
+                  </motion.div>
+
+                  {/* Spacer */}
+                  <div className="flex-grow"></div>
+
+                  {/* Footer del Panel */}
+                  <motion.div variants={itemVariants} className="pt-8 border-t border-neutral-800">
+                    <p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-1">Base</p>
+                    <p className="text-white text-sm font-light">Zaragoza, España</p>
+                  </motion.div>
+                </motion.div>
+              </motion.aside>
+            </>
           )}
         </AnimatePresence>
 
