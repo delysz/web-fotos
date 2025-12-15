@@ -28,8 +28,9 @@ interface SanityImage {
 export interface Foto {
   _id: string;
   titulo: string;
-  category: string;
-  imagen: SanityImage; // Tipado estricto para nuestra lógica de color
+  // CAMBIO 1: Ahora esperamos un array (lista) de textos
+  categories: string[]; 
+  imagen: SanityImage;
   width?: number;
   height?: number;
 }
@@ -40,15 +41,9 @@ interface GalleryProps {
 
 // --- UTILIDAD: HEX a HUE (Color a Número 0-360) ---
 function getHue(hex: string): number {
-  // Si no hay hex o es inválido, devolvemos 0 (Rojo/Neutro)
   if (!hex || typeof hex !== 'string') return 0;
-  
-  // Eliminamos el '#' si existe para asegurar limpieza
   const cleanHex = hex.replace('#', '');
-  
   let r = 0, g = 0, b = 0;
-
-  // Convertir hex a RGB
   if (cleanHex.length === 3) {
     r = parseInt("0x" + cleanHex[0] + cleanHex[0]);
     g = parseInt("0x" + cleanHex[1] + cleanHex[1]);
@@ -58,19 +53,15 @@ function getHue(hex: string): number {
     g = parseInt("0x" + cleanHex.substring(2, 4));
     b = parseInt("0x" + cleanHex.substring(4, 6));
   }
-
   r /= 255; g /= 255; b /= 255;
   const cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin;
   let h = 0;
-
   if (delta === 0) h = 0;
   else if (cmax === r) h = ((g - b) / delta) % 6;
   else if (cmax === g) h = (b - r) / delta + 2;
   else h = (r - g) / delta + 4;
-
   h = Math.round(h * 60);
   if (h < 0) h += 360;
-
   return h;
 }
 
@@ -101,21 +92,24 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
+  // CAMBIO 2: Lógica para sacar categorías únicas de listas (Arrays)
   const categories = useMemo(() => {
-    const rawCategories = fotos.map((f) => f.category).filter((c): c is string => Boolean(c));
-    return ['todos', ...Array.from(new Set(rawCategories))];
+    // flatMap une todas las listas de todas las fotos en una sola gran lista
+    const allTags = fotos.flatMap(f => f.categories || []);
+    // Set elimina los duplicados
+    return ['todos', ...Array.from(new Set(allTags))];
   }, [fotos]);
 
-  // --- LÓGICA DE ORDENAMIENTO POR COLOR ---
+  // --- LÓGICA DE FILTRADO Y ORDENAMIENTO ---
   const filteredFotos = useMemo(() => {
-    const filtered = filter === 'todos' ? fotos : fotos.filter((f) => f.category === filter);
+    // CAMBIO 3: Usamos .includes() porque ahora es una lista
+    const filtered = filter === 'todos' 
+      ? fotos 
+      : fotos.filter((f) => f.categories?.includes(filter));
     
-    // Creamos una copia con [...filtered] para no mutar el array original (buena práctica en React)
     return [...filtered].sort((a, b) => {
-      // TypeScript Safe Access: Usamos Optional Chaining (?.) y valores por defecto
       const colorA = a.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
       const colorB = b.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
-      
       return getHue(colorA) - getHue(colorB);
     });
   }, [fotos, filter]);
@@ -180,7 +174,6 @@ export default function Gallery({ fotos }: GalleryProps) {
   
 // --- EASTER EGG ---
   useEffect(() => {
-    // Evitamos que se ejecute dos veces en modo desarrollo de React 18
     const hasRun = sessionStorage.getItem('easter_egg_shown');
     if (!hasRun) {
       console.log(
@@ -269,7 +262,10 @@ export default function Gallery({ fotos }: GalleryProps) {
                       <motion.div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 pointer-events-none">
                         <div>
                           <h3 className="text-white font-serif text-sm tracking-wide relative top-2 group-hover:top-0 transition-all duration-300">{foto.titulo}</h3>
-                          <p className="text-gray-300 text-[10px] mt-1 uppercase tracking-wider relative top-2 group-hover:top-0 transition-all duration-300 delay-75">{foto.category}</p>
+                          {/* CAMBIO 4: Mostrar las categorías unidas por un punto */}
+                          <p className="text-gray-300 text-[10px] mt-1 uppercase tracking-wider relative top-2 group-hover:top-0 transition-all duration-300 delay-75">
+                             {foto.categories && foto.categories.length > 0 ? foto.categories.join(' • ') : ''}
+                          </p>
                         </div>
                       </motion.div>
                     </div>
@@ -325,8 +321,8 @@ export default function Gallery({ fotos }: GalleryProps) {
                   </motion.div>
                   <motion.div variants={itemVariants} className="mb-12"><p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p></motion.div>
                   <motion.div variants={itemVariants} className="space-y-4">
-                     <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
-                     <a href="https://instagram.com" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_fotografia</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
+                      <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
+                      <a href="https://instagram.com" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_fotografia</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
                   </motion.div>
                   <div className="flex-grow"></div>
                   <motion.div variants={itemVariants} className="pt-8 border-t border-neutral-800"><p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-1">Base</p><p className="text-white text-sm font-light">Zaragoza, España</p></motion.div>
