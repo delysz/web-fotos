@@ -78,7 +78,6 @@ export default function Gallery({ fotos }: GalleryProps) {
   // Manejar carga de imagen con error handling
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error('Error loading image:', e);
-    // Podrías mostrar una imagen de placeholder aquí
   }, []);
 
   // Cerrar menú al hacer clic fuera
@@ -196,6 +195,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     key={foto._id}
+                    onClick={() => handleOpenModal(foto)} // <--- ¡AQUÍ ESTÁ LA CORRECCIÓN!
                     className="break-inside-avoid mb-4 relative group cursor-pointer"
                   >
                     <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900">
@@ -208,7 +208,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                           onContextMenu={handleContextMenu}
                           onError={handleImageError}
-                          draggable={false}
+                          draggable={false} 
                           loading="lazy"
                           className="block w-full h-auto object-cover transition-all duration-500 
                                      grayscale-[20%] contrast-[0.95] 
