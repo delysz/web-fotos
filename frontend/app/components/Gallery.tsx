@@ -12,7 +12,6 @@ interface Foto {
   category: string;
   width?: number;
   height?: number;
-  aspectRatio?: number;
 }
 
 interface GalleryProps {
@@ -26,11 +25,7 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Establecer tamaño fijo para todas las imágenes
-  const IMAGE_WIDTH = 400;
-  const IMAGE_HEIGHT = 500;
-
-  // Memoizar categorías
+  // Memorizar categorías
   const categories = useMemo(() => {
     const rawCategories = fotos
       .map((f) => f.category)
@@ -38,7 +33,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     return ['todos', ...Array.from(new Set(rawCategories))];
   }, [fotos]);
 
-  // Memoizar fotos filtradas
+  // Memorizar fotos filtradas
   const filteredFotos = useMemo(() => {
     return filter === 'todos' 
       ? fotos 
@@ -77,7 +72,6 @@ export default function Gallery({ fotos }: GalleryProps) {
     e.preventDefault();
   }, []);
 
-  // Manejar carga de imagen con error handling
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error('Error loading image:', e);
   }, []);
@@ -97,14 +91,14 @@ export default function Gallery({ fotos }: GalleryProps) {
 
   return (
     <LayoutGroup>
-      <section className="gallery-container">
+      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col">
         
-        {/* --- ENCABEZADO --- */}
-        <header className="gallery-header">
-          <h1 className="gallery-title">
-            Marian <span className="text-gray-600 font-light">&</span> Visual
+        {/* --- ENCABEZADO (Título cambiado) --- */}
+        <header className="text-center mb-12 space-y-4">
+          <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
+            Marian <span className="text-gray-600 font-light">&</span> Fotografía
           </h1>
-          <p className="gallery-subtitle">
+          <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
             Portfolio Selecto
           </p>
           {filteredFotos.length > 0 && (
@@ -134,10 +128,7 @@ export default function Gallery({ fotos }: GalleryProps) {
               <motion.svg 
                 animate={{ rotate: isMenuOpen ? 180 : 0 }}
                 className="w-4 h-4 text-gray-400" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-                aria-hidden="true"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </motion.svg>
@@ -180,13 +171,14 @@ export default function Gallery({ fotos }: GalleryProps) {
           </div>
         </div>
 
-        {/* --- GRID CON TAMAÑOS UNIFORMES --- */}
+        {/* --- GRID UNIFORME (Cuadrado Perfecto con Marco) --- */}
         <div className="flex-grow">
           {filteredFotos.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-500">No hay imágenes en esta categoría</p>
             </div>
           ) : (
+            // CAMBIO PRINCIPAL: Usamos Grid en lugar de columns, con más gap para los marcos
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
                 {filteredFotos.map((foto) => (
@@ -198,43 +190,46 @@ export default function Gallery({ fotos }: GalleryProps) {
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     key={foto._id}
                     onClick={() => handleOpenModal(foto)}
-                    className="photo-card"
+                    className="relative group cursor-pointer"
                   >
-                    {/* Contenedor con tamaño fijo y marco */}
-                    <div className="relative w-full h-[500px] overflow-hidden bg-neutral-900 
-                                  border-4 border-neutral-800 rounded-lg p-1 group">
+                    {/* AQUÍ ESTÁ LA MAGIA DEL MARCO Y EL TAMAÑO UNIFORME:
+                        1. aspect-square: Fuerza que el contenedor sea un cuadrado perfecto.
+                        2. border-4 border-white: Añade el marco blanco estilo galería.
+                        3. shadow-xl: Un poco de sombra para que el marco resalte del fondo negro.
+                    */}
+                    <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-4 border-white shadow-sm hover:shadow-white/20 transition-shadow duration-300">
                       {foto.imagen && (
-                        <div className="relative w-full h-full flex items-center justify-center">
-                          <Image 
-                            src={urlFor(foto.imagen).width(IMAGE_WIDTH).quality(85).url()}
-                            alt={foto.titulo || "Fotografía de Marian Visual"}
-                            width={IMAGE_WIDTH}
-                            height={IMAGE_HEIGHT}
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                            onContextMenu={handleContextMenu}
-                            onError={handleImageError}
-                            draggable={false} 
-                            loading="lazy"
-                            className="photo-img object-contain w-full h-full p-2"
-                            style={{
-                              maxWidth: '100%',
-                              maxHeight: '100%'
-                            }}
-                          />
-                          
-                          {/* Overlay mejorado */}
-                          <div className="photo-overlay">
-                            <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-transparent to-transparent">
-                              <span className="photo-category block">
-                                {foto.category}
-                              </span>
-                              <h3 className="photo-name text-white font-serif text-lg">
-                                {foto.titulo}
-                              </h3>
-                            </div>
-                          </div>
-                        </div>
+                        <Image 
+                          src={urlFor(foto.imagen).width(800).height(800).fit('crop').quality(80).url()} // Optimizamos para cuadrado
+                          alt={foto.titulo || "Fotografía de Marian"}
+                          width={800}
+                          height={800}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          onContextMenu={handleContextMenu}
+                          onError={handleImageError}
+                          draggable={false} 
+                          loading="lazy"
+                          // 'h-full' y 'object-cover' aseguran que llene el cuadrado sin deformarse
+                          className="block w-full h-full object-cover transition-all duration-500 
+                                     grayscale-[20%] contrast-[0.95] 
+                                     group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-[1.05]"
+                        />
                       )}
+                      {/* Overlay dentro del marco */}
+                      <motion.div 
+                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent 
+                                   opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                                   flex items-end p-4 pointer-events-none"
+                      >
+                        <div>
+                          <h3 className="text-white font-serif text-sm tracking-wide relative top-2 group-hover:top-0 transition-all duration-300">
+                            {foto.titulo}
+                          </h3>
+                          <p className="text-gray-300 text-[10px] mt-1 uppercase tracking-wider relative top-2 group-hover:top-0 transition-all duration-300 delay-75">
+                            {foto.category}
+                          </p>
+                        </div>
+                      </motion.div>
                     </div>
                   </motion.article>
                 ))}
@@ -243,14 +238,23 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </div>
 
-        {/* --- FOOTER --- */}
-        <footer className="mt-20 pt-8 border-t border-neutral-900 text-center">
+        {/* --- FOOTER CON LINK A GITHUB --- */}
+        <footer className="mt-20 pt-8 border-t border-neutral-900 text-center space-y-2">
           <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">
-            &copy; {new Date().getFullYear()} Marian Visual. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} Marian Fotografía. Todos los derechos reservados.
           </p>
-          <p className="text-neutral-700 text-[9px] mt-2">
+          <p className="text-neutral-700 text-[9px]">
             Prohibida la reproducción total o parcial sin autorización escrita.
           </p>
+          {/* Nuevo enlace */}
+          <a 
+            href="https://github.com/delysz" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-block text-neutral-500 text-[9px] tracking-[0.1em] hover:text-neutral-300 transition-colors pt-2"
+          >
+            design by Delysz
+          </a>
         </footer>
 
         {/* --- MODAL (LIGHTBOX) --- */}
@@ -264,11 +268,11 @@ export default function Gallery({ fotos }: GalleryProps) {
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out"
               role="dialog"
               aria-modal="true"
-              aria-labelledby="modal-title"
             >
+              {/* Quitamos el marco blanco en el modal para que la foto se vea limpia a pantalla completa */}
               <motion.div
                 layoutId={`card-${selectedFoto._id}`}
-                className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center rounded-lg overflow-hidden bg-black shadow-2xl border-2 border-neutral-800"
+                className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 {selectedFoto.imagen && (
@@ -278,7 +282,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                         <div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div>
                       </div>
                     )}
-
                     <Image 
                       src={urlFor(selectedFoto.imagen).width(1920).quality(90).url()}
                       alt={selectedFoto.titulo}
@@ -291,7 +294,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                       draggable={false}
                       onLoadingComplete={() => setIsImageLoaded(true)}
                       className={`
-                        w-full h-full object-contain max-h-[90vh] mx-auto z-10 p-8
+                        w-full h-full object-contain max-h-[90vh] mx-auto z-10 
                         transition-opacity duration-500
                         ${isImageLoaded ? 'opacity-100' : 'opacity-0'} 
                       `}
@@ -302,7 +305,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                 {isImageLoaded && (
                   <>
                     <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20 pointer-events-none">
-                      <h2 id="modal-title" className="text-2xl text-white font-serif">
+                      <h2 className="text-2xl text-white font-serif">
                         {selectedFoto.titulo}
                       </h2>
                       <p className="text-gray-400 text-sm uppercase tracking-widest mt-1">
