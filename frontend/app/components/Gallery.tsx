@@ -100,7 +100,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         {/* --- ENCABEZADO --- */}
         <header className="text-center mb-12 space-y-4">
           <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
-            Marian <span className="text-gray-600 font-light">&</span> Visual
+            Marian <span className="text-gray-600 font-light">&</span> Fotografía
           </h1>
           <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
             Portfolio Selecto
@@ -240,7 +240,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         {/* --- FOOTER --- */}
         <footer className="mt-20 pt-8 border-t border-neutral-900 text-center">
           <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">
-            &copy; {new Date().getFullYear()} Marian Visual. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} Marian Fotografía. Todos los derechos reservados.
           </p>
           <p className="text-neutral-700 text-[9px] mt-2">
             Prohibida la reproducción total o parcial sin autorización escrita.
