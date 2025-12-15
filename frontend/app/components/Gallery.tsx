@@ -6,9 +6,7 @@ import { urlFor } from '@/sanity/client';
 import { motion, AnimatePresence, LayoutGroup, Variants, useInView, useScroll, useTransform, useSpring } from 'framer-motion';
 
 // --- INTERFACES ---
-interface SanityPalette {
-  dominant?: { background?: string; };
-}
+interface SanityPalette { dominant?: { background?: string; }; }
 interface SanityMetadata { palette?: SanityPalette; }
 interface SanityAsset { url: string; metadata?: SanityMetadata; }
 interface SanityImage { asset: SanityAsset; }
@@ -70,13 +68,11 @@ const Icons = {
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0 },
   visible: { 
-    x: '0%', 
-    opacity: 1, 
+    x: '0%', opacity: 1, 
     transition: { type: 'spring', damping: 25, stiffness: 300, when: "beforeChildren", staggerChildren: 0.1 } 
   },
   exit: { 
-    x: '100%', 
-    opacity: 0, 
+    x: '100%', opacity: 0, 
     transition: { ease: 'easeInOut', duration: 0.4, when: "afterChildren", staggerChildren: 0.05, staggerDirection: -1 } 
   }
 };
@@ -109,6 +105,36 @@ const modalVariants: Variants = {
   exit: { opacity: 0, scale: 0.95, rotateX: -5, transition: { duration: 0.3 } }
 };
 
+// --- PRELOADER (NUEVO) ---
+const Preloader = ({ onComplete }: { onComplete: () => void }) => {
+  return (
+    <motion.div 
+      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+      initial={{ y: 0 }}
+      animate={{ y: "-100%" }}
+      transition={{ duration: 1, ease: [0.76, 0, 0.24, 1], delay: 2.5 }}
+      onAnimationComplete={onComplete}
+    >
+      <div className="overflow-hidden">
+        <motion.h1 
+          className="text-6xl md:text-8xl font-serif text-white tracking-widest uppercase"
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+        >
+          Marian
+        </motion.h1>
+        <motion.div 
+          className="h-[1px] bg-white mt-4"
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 1.5, ease: "easeInOut", delay: 0.8 }}
+        />
+      </div>
+    </motion.div>
+  );
+};
+
 // --- PARTÍCULAS ---
 const FloatingParticles = () => {
   const particles = Array.from({ length: 12 }, (_, i) => ({
@@ -136,6 +162,7 @@ const FloatingParticles = () => {
 };
 
 export default function Gallery({ fotos }: GalleryProps) {
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('todos');
   const [selectedFoto, setSelectedFoto] = useState<Foto | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
@@ -220,7 +247,16 @@ export default function Gallery({ fotos }: GalleryProps) {
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    // Simular tiempo mínimo de carga para el preloader
+    const timer = setTimeout(() => {
+      // El preloader se encargará de llamar a onComplete cuando termine su animación
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -244,6 +280,9 @@ export default function Gallery({ fotos }: GalleryProps) {
 
   return (
     <LayoutGroup>
+      {/* PRELOADER */}
+      {loading && <Preloader onComplete={() => setLoading(false)} />}
+
       <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden">
         
         <FloatingParticles />
@@ -264,7 +303,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           transition={{ type: "spring", stiffness: 200, damping: 30 }}
         >
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <motion.div className="text-left" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
+            <motion.div className="text-left" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 3 }}>
               <h1 className="text-xl md:text-2xl font-serif text-white tracking-widest uppercase opacity-90">Marian <span className="text-gray-600 font-light italic">&</span></h1>
               <p className="text-gray-500 text-[8px] tracking-[0.3em] uppercase mt-1">Fotografía</p>
             </motion.div>
@@ -274,6 +313,9 @@ export default function Gallery({ fotos }: GalleryProps) {
               className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-all cursor-pointer relative"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3 }}
             >
               <span className="hidden md:block">Sobre mí</span>
               <motion.span 
@@ -289,7 +331,7 @@ export default function Gallery({ fotos }: GalleryProps) {
 
         {/* HERO */}
         <div className="relative mt-32 mb-20 text-center z-10">
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}>
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 3 }}>
             <div className="relative inline-block">
               <motion.h1 
                 className="text-5xl md:text-7xl lg:text-8xl font-serif text-white tracking-tight uppercase opacity-90"
@@ -298,22 +340,12 @@ export default function Gallery({ fotos }: GalleryProps) {
               >
                 Explorando la luz
               </motion.h1>
-              <motion.div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-white to-transparent" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.8, duration: 1.5, ease: "easeOut" }} />
+              <motion.div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-white to-transparent" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 3.8, duration: 1.5, ease: "easeOut" }} />
             </div>
             
-            <motion.p className="text-gray-500 text-sm tracking-[0.3em] uppercase mt-12 max-w-2xl mx-auto leading-relaxed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 1 }}>
+            <motion.p className="text-gray-500 text-sm tracking-[0.3em] uppercase mt-12 max-w-2xl mx-auto leading-relaxed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.2, duration: 1 }}>
               Capturando momentos únicos donde la naturaleza y la emoción se encuentran
             </motion.p>
-            
-            <motion.div className="mt-12" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 }}>
-              <div className="flex items-center justify-center gap-8 text-gray-400 text-xs tracking-[0.2em] uppercase">
-                <motion.span className="flex items-center gap-2" whileHover={{ scale: 1.1 }}><Icons.Heart size={12} /> Paisajes</motion.span>
-                <span className="text-gray-600">•</span>
-                <motion.span className="flex items-center gap-2" whileHover={{ scale: 1.1 }}><Icons.ImageIcon size={12} /> Naturaleza</motion.span>
-                <span className="text-gray-600">•</span>
-                <motion.span className="flex items-center gap-2" whileHover={{ scale: 1.1 }}><Icons.Aperture size={12} /> Macro</motion.span>
-              </div>
-            </motion.div>
           </motion.div>
         </div>
 
@@ -322,7 +354,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           className="w-full max-w-7xl mx-auto mb-16 px-1 z-40 sticky top-32 bg-[#0a0a0a]/90 backdrop-blur-sm py-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 3.5 }}
         >
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
             {categories.map((cat, index) => (
@@ -334,16 +366,13 @@ export default function Gallery({ fotos }: GalleryProps) {
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: 3.5 + (index * 0.1) }}
               >
                 {filter === cat && (<motion.div layoutId="activeFilter" className="absolute inset-0 bg-white" transition={{ type: "spring", stiffness: 300, damping: 30 }} />)}
                 <span className="relative z-10">{cat}</span>
               </motion.button>
             ))}
           </div>
-          <motion.div className="text-center mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
-            <p className="text-gray-600 text-[10px] tracking-[0.3em] uppercase">{filteredFotos.length} obras encontradas</p>
-          </motion.div>
         </motion.div>
 
         {/* GRID */}
@@ -524,6 +553,14 @@ export default function Gallery({ fotos }: GalleryProps) {
                           <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Fotografía de paisaje</li>
                           <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Fotografía macro</li>
                           <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Retrato natural</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-white text-sm tracking-widest uppercase">Equipo</h4>
+                        <ul className="text-gray-400 text-sm space-y-1">
+                          <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Canon 700D</li>
+                          <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Objetivo Macro</li>
+                          <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Trípode Manfrotto</li>
                         </ul>
                       </div>
                     </div>
