@@ -1,66 +1,47 @@
-# 📸 Portfolio de Fotografía Profesional
+# 📷 Marian Fotografía | Portfolio Selecto
 
-> Una plataforma web moderna, rápida y minimalista diseñada para exponer el trabajo fotográfico de mi madre.
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
+![Sanity](https://img.shields.io/badge/Sanity-F03E2F?style=for-the-badge&logo=sanity&logoColor=white)
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38B2AC) ![Sanity](https://img.shields.io/badge/Sanity-v3-F03E2F)
+> **Portfolio minimalista y de alto rendimiento diseñado para una artista visual.** > Enfocado en la experiencia de usuario (UX), animaciones fluidas y una gestión de contenido headless.
 
-## 📖 Sobre el Proyecto
+🔗 **[Ver Demo en Vivo](https://marianfotografia.vercel.app)** *(Asegúrate de cambiar este enlace por el tuyo real)*
 
-Este proyecto nace de una necesidad real: crear un espacio digital donde gestionar y mostrar un catálogo fotográfico en crecimiento. A diferencia de soluciones genéricas, esta web ofrece una experiencia de usuario fluida y una gestión de contenido totalmente personalizada.
+---
 
-El objetivo técnico fue construir una aplicación **Full Stack** performante, utilizando **ISR (Incremental Static Regeneration)** para lograr tiempos de carga instantáneos sin sacrificar la frescura de los datos.
+## 🖼️ Sobre el Proyecto
 
-## ✨ Características Clave
+Este proyecto es una galería fotográfica moderna construida con **Next.js 14** (App Router). El objetivo principal era crear una experiencia inmersiva que no distraiga de las obras, utilizando un diseño "dark mode" con texturas orgánicas y transiciones cinematográficas.
 
-* **⚡ Rendimiento Extremo:** Arquitectura basada en Next.js App Router.
-* **🎨 CMS Headless:** Gestión de contenidos flexible con **Sanity.io**. Permite crear categorías y subir fotos sin tocar código.
-* **✨ UI/UX Animada:** Transiciones fluidas y micro-interacciones utilizando **Framer Motion**.
-* **📱 Diseño Responsive:** Grid "Masonry-style" adaptado a móviles y escritorio con **Tailwind CSS**.
-* **🔍 Filtrado en Cliente:** Sistema de filtrado por categorías instantáneo (sin recargas de página).
-* **🖼️ Optimización de Imágenes:** Uso de `next/image` con placeholders (LQIP) y carga diferida.
+Los datos son gestionados dinámicamente a través de **Sanity.io**, permitiendo al cliente subir, categorizar y gestionar sus fotografías sin tocar una sola línea de código.
 
-## 🛠️ Stack Tecnológico
+## ✨ Características Técnicas Destacadas
 
-* **Frontend:** Next.js 14 (App Router), React, TypeScript.
+### 🎨 Frontend & UI/UX
+* **Diseño Atmosférico:** Implementación de texturas "noise" (grano de película) y modos de fusión CSS para un acabado orgánico.
+* **Animaciones Avanzadas (Framer Motion):**
+    * **Preloader Cinematográfico:** Secuencia de entrada coordinada.
+    * **Scroll Triggers:** Elementos que reaccionan al desplazamiento.
+    * **Micro-interacciones:** Hover effects en tarjetas y botones.
+    * **Layout Animations:** Transiciones suaves al filtrar categorías (sin recargas).
+* **Algoritmo de Color:** Las imágenes se ordenan automáticamente analizando su **dominancia de color (Hue)** para crear una armonía visual en el grid.
+
+### ⚙️ Backend & CMS
+* **Sanity.io Headless CMS:**
+    * Esquemas personalizados para gestión de metadatos.
+    * Generación automática de URLs optimizadas.
+    * Soporte para múltiples categorías por imagen.
+* **Optimización de Imágenes:** Uso de `next/image` con carga diferida (lazy loading), placeholders blur y formatos modernos (WebP/AVIF).
+
+## 🛠️ Tecnologías Utilizadas
+
+* **Core:** Next.js 14, React, TypeScript.
 * **Estilos:** Tailwind CSS.
-* **Animaciones:** Framer Motion.
-* **Backend / CMS:** Sanity.io (Content Lake).
-* **Despliegue:** Vercel.
-
-## 🚀 Instalación y Despliegue Local
-
-Sigue estos pasos para correr el proyecto en tu máquina:
-
-1.  **Clonar el repositorio:**
-    ```bash
-    git clone [https://github.com/tu-usuario/nombre-del-repo.git](https://github.com/tu-usuario/nombre-del-repo.git)
-    cd nombre-del-repo
-    ```
-
-2.  **Instalar dependencias:**
-    ```bash
-    npm install
-    # o
-    cd backend && npm install # Para instalar las dependencias de Sanity
-    ```
-
-3.  **Configurar Variables de Entorno:**
-    Renombra el archivo `.env.example` a `.env.local` y añade tus claves de Sanity:
-    ```bash
-    NEXT_PUBLIC_SANITY_PROJECT_ID=tu_project_id
-    NEXT_PUBLIC_SANITY_DATASET=production
-    ```
-
-4.  **Correr el servidor de desarrollo:**
-    ```bash
-    npm run dev
-    ```
-
-## 📸 Vistazo al CMS (Sanity Studio)
-
-El panel de administración permite:
-* Subir imágenes con recorte inteligente (Hotspot).
-* Crear y gestionar categorías dinámicas.
-* Ver cambios en tiempo real.
+* **Animación:** Framer Motion.
+* **Datos:** Sanity Client, GROQ (Query Language).
+* **Despliegue:** Vercel (CI/CD).
 
 ---
