@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-import { motion, AnimatePresence } from 'framer-motion'; // <--- Importamos la magia
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Foto {
   _id: string;
@@ -15,7 +15,7 @@ interface Foto {
 export default function Gallery({ fotos }: { fotos: Foto[] }) {
   const [filter, setFilter] = useState('todos');
 
-  // Sacamos categorías únicas y limpiamos (quitamos nulls o undefined)
+  // Filtramos categorías vacías
   const rawCategories = fotos.map((f) => f.category).filter((c) => c);
   const categories = ['todos', ...Array.from(new Set(rawCategories))];
 
@@ -24,78 +24,94 @@ export default function Gallery({ fotos }: { fotos: Foto[] }) {
     : fotos.filter((f) => f.category === filter);
 
   return (
-    <section>
-      {/* --- BOTONES DE FILTRO --- */}
-      <div className="flex justify-center flex-wrap gap-4 mb-12">
+    <section className="bg-[#0a0a0a] min-h-screen py-20 px-4 sm:px-8">
+      
+      {/* --- ENCABEZADO "FIRMA MARIAN" --- */}
+      <div className="text-center mb-16 space-y-4">
+        <h2 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
+          Marian <span className="text-gray-600 font-light">&</span> Visual
+        </h2>
+        <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
+          Portfolio Selecto 2024
+        </p>
+      </div>
+
+      {/* --- FILTROS MINIMALISTAS --- */}
+      <div className="flex justify-center flex-wrap gap-8 mb-16">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setFilter(cat)}
-            className={`
-              relative px-6 py-2 rounded-full text-sm font-medium tracking-wide uppercase transition-all duration-300
-              ${filter === cat 
-                ? 'text-black bg-white shadow-[0_0_20px_rgba(255,255,255,0.3)]' 
-                : 'text-gray-500 hover:text-white hover:bg-white/10'
-              }
-            `}
+            className="relative group py-2"
           >
-            {cat}
-            {/* Pequeño punto indicador si está activo */}
+            <span className={`
+              text-xs font-medium tracking-[0.2em] uppercase transition-colors duration-300
+              ${filter === cat ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}
+            `}>
+              {cat}
+            </span>
+            {/* Línea elegante debajo del activo */}
             {filter === cat && (
-              <motion.span
-                layoutId="activeFilter"
-                className="absolute inset-0 rounded-full border-2 border-transparent"
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              <motion.div
+                layoutId="underline"
+                className="absolute left-0 right-0 bottom-0 h-[1px] bg-white"
               />
             )}
           </button>
         ))}
       </div>
 
-      {/* --- GRID DE FOTOS ANIMADO --- */}
+      {/* --- GRID MASONRY (Columas tipo Pinterest) --- */}
       <motion.div 
-        layout 
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+        layout
+        className="columns-1 sm:columns-2 lg:columns-3 gap-8 space-y-8 max-w-7xl mx-auto"
       >
-        <AnimatePresence>
+        <AnimatePresence mode='popLayout'>
           {filteredFotos.map((foto) => (
             <motion.div
               layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }} // Easing editorial
               key={foto._id}
-              className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-neutral-900 shadow-xl cursor-pointer"
+              className="break-inside-avoid relative group cursor-pointer overflow-hidden"
             >
-              {foto.imagen && (
-                <Image 
-                  src={urlFor(foto.imagen).width(800).url()}
-                  alt={foto.titulo || "Fotografía"}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-110 group-hover:opacity-90"
-                />
-              )}
-              
-              {/* Overlay elegante */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                 <span className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-1">
+              {/* Contenedor de imagen */}
+              <div className="relative w-full overflow-hidden">
+                {foto.imagen && (
+                  <Image 
+                    src={urlFor(foto.imagen).width(800).url()}
+                    alt={foto.titulo || "Marian Photography"}
+                    width={800}
+                    height={1000} // Altura base, pero el CSS 'w-full h-auto' manda
+                    className="w-full h-auto object-cover transition-all duration-700 ease-out 
+                               grayscale-[20%] contrast-[0.95] 
+                               group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-[1.03]"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                )}
+                
+                {/* Overlay Sutil (Solo texto, sin oscurecer toda la foto) */}
+                <div className="absolute inset-0 p-6 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-black/80 via-transparent to-transparent">
+                  <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                     {foto.category}
-                 </span>
-                 <h3 className="text-xl font-serif text-white leading-tight transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
+                  </span>
+                  <h3 className="text-lg font-serif text-white mt-1 translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-75">
                     {foto.titulo}
-                 </h3>
+                  </h3>
+                </div>
               </div>
+
             </motion.div>
           ))}
         </AnimatePresence>
       </motion.div>
 
-      {/* Mensaje si no hay fotos (por si acaso) */}
+      {/* Mensaje vacío */}
       {filteredFotos.length === 0 && (
-        <div className="text-center py-20 text-gray-500">
-          <p>No hay fotos en esta categoría aún.</p>
+        <div className="text-center py-32 text-gray-600 font-serif italic">
+          <p>No hay imágenes disponibles en esta colección.</p>
         </div>
       )}
     </section>
