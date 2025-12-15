@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-import { motion, AnimatePresence, LayoutGroup, Variants, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup, Variants } from 'framer-motion';
 
 // --- INTERFACES STRICT TYPING ---
 interface SanityPalette {
@@ -86,18 +86,6 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
-  
-  // LOGICA DEL CURSOR
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
-
-  useEffect(() => {
-    const moveCursor = (e: MouseEvent) => {
-      setCursorPos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', moveCursor);
-    return () => window.removeEventListener('mousemove', moveCursor);
-  }, []);
 
   // Categorías y Filtrado
   const categories = useMemo(() => {
@@ -177,26 +165,13 @@ export default function Gallery({ fotos }: GalleryProps) {
 
   return (
     <LayoutGroup>
-      {/* 1. CURSOR PERSONALIZADO */}
-      <motion.div 
-        className="fixed top-0 left-0 w-8 h-8 rounded-full border border-white pointer-events-none z-[100] hidden md:block mix-blend-difference"
-        animate={{ 
-          x: cursorPos.x - 16, 
-          y: cursorPos.y - 16,
-          scale: isHovering ? 2.5 : 1,
-          backgroundColor: isHovering ? "rgba(255,255,255,0.2)" : "transparent"
-        }}
-        transition={{ type: "spring", stiffness: 500, damping: 28 }}
-      />
-      <div className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[100] hidden md:block" style={{ transform: `translate(${cursorPos.x - 4}px, ${cursorPos.y - 4}px)` }} />
-
-      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden cursor-none">
+      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden">
         
-        {/* 2. EFECTO "NOISE" (TEXTURA DE GRANO) */}
+        {/* EFECTO "NOISE" (TEXTURA DE GRANO - MANTENIDO) */}
         <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0 mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
         {/* HEADER */}
-        <header className="relative text-center mb-20 space-y-4 z-10" onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
+        <header className="relative text-center mb-20 space-y-4 z-10">
           <div className="absolute top-0 right-0 hidden md:block z-50">
             <button onClick={toggleContact} className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto">
               <span>Sobre mí</span>
@@ -222,8 +197,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <button 
                       key={cat} 
                       onClick={() => setFilter(cat)} 
-                      onMouseEnter={() => setIsHovering(true)} 
-                      onMouseLeave={() => setIsHovering(false)}
                       className={`text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer relative ${filter === cat ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}
                     >
                         {cat}
@@ -248,9 +221,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     initial="hidden" animate="visible" exit="exit"
                     transition={{ delay: index * 0.08 }} // Retraso en cascada
                     onClick={() => handleOpenModal(foto)}
-                    className="relative group cursor-none"
-                    onMouseEnter={() => setIsHovering(true)} 
-                    onMouseLeave={() => setIsHovering(false)}
+                    className="relative group cursor-pointer"
                   >
                     <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-0 shadow-lg group-hover:shadow-2xl transition-all duration-500">
                       {foto.imagen && (
@@ -284,15 +255,15 @@ export default function Gallery({ fotos }: GalleryProps) {
         {/* FOOTER */}
         <footer className="mt-24 pt-10 border-t border-neutral-900 text-center space-y-4 z-10 pb-10">
           <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">&copy; {new Date().getFullYear()} Marian Fotografía.</p>
-          <a href="https://github.com/delysz" target="_blank" rel="noopener noreferrer" className="inline-block text-neutral-800 hover:text-neutral-600 transition-colors text-[9px] tracking-widest cursor-pointer" onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>DESIGN BY DELYSZ</a>
+          <a href="https://github.com/delysz" target="_blank" rel="noopener noreferrer" className="inline-block text-neutral-800 hover:text-neutral-600 transition-colors text-[9px] tracking-widest cursor-pointer">DESIGN BY DELYSZ</a>
         </footer>
 
         {/* MODAL */}
         <AnimatePresence>
           {isModalOpen && selectedFoto && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/98 backdrop-blur-md p-4 cursor-none">
-              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-4 text-white/30 hover:text-white rounded-full transition-all cursor-none hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>)}
-              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToNext(e); }} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-4 text-white/30 hover:text-white rounded-full transition-all cursor-none hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>)}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/98 backdrop-blur-md p-4 cursor-zoom-out">
+              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-4 text-white/30 hover:text-white rounded-full transition-all cursor-pointer hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>)}
+              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToNext(e); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-4 text-white/30 hover:text-white rounded-full transition-all cursor-pointer hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>)}
               
               <motion.div layoutId={`card-${selectedFoto._id}`} className="relative max-w-7xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 {selectedFoto.imagen && (
@@ -305,7 +276,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     />
                   </>
                 )}
-                {isImageLoaded && (<button onClick={handleCloseModal} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-30 p-2 rounded-full cursor-none"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>)}
+                {isImageLoaded && (<button onClick={handleCloseModal} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-30 p-2 rounded-full cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>)}
               </motion.div>
             </motion.div>
           )}
