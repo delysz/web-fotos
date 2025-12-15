@@ -1,14 +1,14 @@
 // backend/schemaTypes/categoria.ts
-import { defineField, defineType } from 'sanity'
+import { defineType, defineField } from 'sanity'
 
 export default defineType({
   name: 'categoria',
-  title: 'Categorías',
+  title: 'Categoría',
   type: 'document',
   fields: [
     defineField({
       name: 'titulo',
-      title: 'Nombre de la Categoría',
+      title: 'Título',
       type: 'string',
     }),
   ],

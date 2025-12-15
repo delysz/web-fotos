@@ -17,12 +17,17 @@ export default defineType({
       type: 'image',
       options: { hotspot: true },
     }),
-    // 👇 AQUÍ ESTÁ LA MAGIA
+    
+    // 👇 ESTO ES LO NUEVO (Multi-categoría)
     defineField({
-      name: 'categoria',
-      title: 'Categoría',
-      type: 'reference', // <--- Ya no es string, es una referencia
-      to: [{ type: 'categoria' }], // <--- Apunta al archivo que creamos antes
+      name: 'categorias',  // <--- Plural
+      title: 'Categorías', // <--- Título
+      type: 'array',       // <--- AHORA ES UNA LISTA
+      of: [{               // <--- ¿De qué es la lista? De referencias.
+        type: 'reference', 
+        to: [{ type: 'categoria' }] 
+      }],
+      validation: (rule) => rule.unique().error('No puedes repetir la misma categoría dos veces'),
     }),
   ],
 })
