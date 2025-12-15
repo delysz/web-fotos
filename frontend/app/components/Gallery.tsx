@@ -3,7 +3,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+// AÑADIDO: Importamos 'Variants' para solucionar el error de TypeScript
+import { motion, AnimatePresence, LayoutGroup, Variants } from 'framer-motion';
 
 // --- TUS INTERFACES ---
 interface Foto {
@@ -19,8 +20,8 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
-// --- VARIANTES DE ANIMACIÓN (Para que se vea PRO) ---
-const drawerVariants = {
+// --- VARIANTES DE ANIMACIÓN (Corregidas con el tipo : Variants) ---
+const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0.5 },
   visible: { 
     x: '0%', 
@@ -34,15 +35,15 @@ const drawerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 20, opacity: 0 },
   visible: { y: 0, opacity: 1 }
 };
 
-const containerVariants = {
+const containerVariants: Variants = {
   visible: {
     transition: {
-      staggerChildren: 0.1, // Efecto cascada: aparece uno tras otro
+      staggerChildren: 0.1, // Efecto cascada
       delayChildren: 0.2
     }
   }
@@ -127,7 +128,6 @@ export default function Gallery({ fotos }: GalleryProps) {
               className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto"
             >
               <span>Contacto</span>
-              {/* Pequeño punto indicador */}
               <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${isContactOpen ? 'bg-white' : 'bg-transparent border border-gray-600 group-hover:border-white'}`}></span>
             </button>
           </div>
@@ -333,11 +333,11 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* --- PANEL DESLIZANTE DE CONTACTO (PROFESIONAL) --- */}
+        {/* --- PANEL DESLIZANTE DE CONTACTO (DRAWER) --- */}
         <AnimatePresence>
           {isContactOpen && (
             <>
-              {/* Overlay oscuro (SIN BLUR, solo oscurece) */}
+              {/* Overlay oscuro (SIN BLUR) */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -346,16 +346,16 @@ export default function Gallery({ fotos }: GalleryProps) {
                 className="fixed inset-0 bg-black/60 z-[70]"
               />
 
-              {/* Panel lateral derecho (Drawer) */}
+              {/* Panel lateral derecho */}
               <motion.aside
                 variants={drawerVariants}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
                 className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl p-10 flex flex-col justify-between"
-                onClick={(e) => e.stopPropagation()} // Evitar cerrar al hacer clic dentro
+                onClick={(e) => e.stopPropagation()}
               >
-                {/* Botón Cerrar (X) */}
+                {/* Botón Cerrar */}
                 <button 
                   onClick={toggleContact}
                   className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800"
@@ -365,7 +365,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                   </svg>
                 </button>
 
-                {/* Contenido animado en cascada */}
+                {/* Contenido animado */}
                 <motion.div 
                   variants={containerVariants}
                   initial="hidden"
@@ -389,7 +389,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     </p>
                   </motion.div>
 
-                  {/* Links Interactivos (Estilo Tarjeta) */}
+                  {/* Links */}
                   <motion.div variants={itemVariants} className="space-y-4">
                     <a 
                       href="mailto:hola@marianfoto.com" 
@@ -426,10 +426,8 @@ export default function Gallery({ fotos }: GalleryProps) {
                     </a>
                   </motion.div>
 
-                  {/* Spacer */}
                   <div className="flex-grow"></div>
 
-                  {/* Footer del Panel */}
                   <motion.div variants={itemVariants} className="pt-8 border-t border-neutral-800">
                     <p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-1">Base</p>
                     <p className="text-white text-sm font-light">Zaragoza, España</p>
