@@ -216,7 +216,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         <header className="relative text-center mb-16 space-y-4 z-10">
           <div className="absolute top-0 right-0 hidden md:block z-50">
             <button onClick={toggleContact} className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto">
-              <span>Contacto</span>
+              <span>Sobre mí</span>
               <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${isContactOpen ? 'bg-white' : 'bg-transparent border border-gray-600 group-hover:border-white'}`}></span>
             </button>
           </div>
@@ -227,7 +227,7 @@ export default function Gallery({ fotos }: GalleryProps) {
             <p className="text-gray-500 text-xs tracking-[0.3em] uppercase relative z-0 mt-4">Portfolio Selecto</p>
           </motion.div>
           <div className="md:hidden pt-4 relative z-50">
-             <button onClick={toggleContact} className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors">Contacto</button>
+             <button onClick={toggleContact} className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors">Sobre mí</button>
           </div>
         </header>
 
@@ -316,21 +316,40 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* DRAWER CONTACTO (ACTUALIZADO CON ICONOS) */}
+        {/* DRAWER PERFIL / CONTACTO */}
         <AnimatePresence>
           {isContactOpen && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/60 z-[70]" />
               <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl p-10 flex flex-col justify-between" onClick={(e) => e.stopPropagation()}>
+                
                 <button onClick={toggleContact} className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                
                 <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col h-full mt-10">
                   <motion.div variants={itemVariants}>
+                    
+                    {/* FOTO DE PERFIL AÑADIDA AQUÍ */}
+                    <div className="mb-8 relative w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-800 group">
+                         <Image 
+                            src="/perfil.jpg" 
+                            alt="Marian" 
+                            fill 
+                            className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                            onError={(e) => {
+                                // Fallback por si no encuentra la foto: oculta el contenedor
+                                (e.target as HTMLElement).style.display = 'none';
+                                (e.target as HTMLElement).parentElement!.style.display = 'none';
+                            }}
+                         />
+                    </div>
+
                     <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Marian</h2>
                     <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Fotografía y Naturaleza</p>
                   </motion.div>
+                  
                   <motion.div variants={itemVariants} className="mb-12"><p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p></motion.div>
                   
-                  {/* REDES CON ICONOS */}
+                  {/* REDES */}
                   <motion.div variants={itemVariants} className="space-y-4">
                       <a href="mailto:mariaantoniaazucena@gmail.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
                         <div className="flex items-center gap-3">
