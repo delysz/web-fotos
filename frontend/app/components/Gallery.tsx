@@ -1,29 +1,17 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-import { motion, AnimatePresence, LayoutGroup, Variants } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup, Variants, useScroll, useTransform, useSpring } from 'framer-motion';
 
 // --- INTERFACES STRICT TYPING ---
 interface SanityPalette {
-  dominant?: {
-    background?: string;
-  };
+  dominant?: { background?: string; };
 }
-
-interface SanityMetadata {
-  palette?: SanityPalette;
-}
-
-interface SanityAsset {
-  url: string;
-  metadata?: SanityMetadata;
-}
-
-interface SanityImage {
-  asset: SanityAsset;
-}
+interface SanityMetadata { palette?: SanityPalette; }
+interface SanityAsset { url: string; metadata?: SanityMetadata; }
+interface SanityImage { asset: SanityAsset; }
 
 export interface Foto {
   _id: string;
@@ -38,7 +26,7 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
-// --- UTILIDAD: HEX a HUE ---
+// --- UTILIDADES ---
 function getHue(hex: string): number {
   if (!hex || typeof hex !== 'string') return 0;
   const cleanHex = hex.replace('#', '');
@@ -66,21 +54,13 @@ function getHue(hex: string): number {
 
 // --- ICONOS SVG ---
 const Icons = {
-  Mail: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-  ),
-  Instagram: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-  ),
-  Facebook: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-  ),
-  Flickr: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="12" r="3"/><circle cx="16" cy="12" r="3"/></svg>
-  )
+  Mail: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>),
+  Instagram: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>),
+  Facebook: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>),
+  Flickr: () => (<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="12" r="3"/><circle cx="16" cy="12" r="3"/></svg>)
 };
 
-// --- VARIANTES DE ANIMACIÓN ---
+// --- VARIANTES ---
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0.5 },
   visible: { x: '0%', opacity: 1, transition: { type: 'spring', damping: 30, stiffness: 300 } },
@@ -94,8 +74,8 @@ const containerVariants: Variants = {
   visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
 };
 const photoCardVariants: Variants = {
-  hidden: { opacity: 0, y: 50, scale: 0.95 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 100, damping: 20 } },
+  hidden: { opacity: 0, y: 50, scale: 0.95, filter: "blur(10px)" },
+  visible: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: { type: "spring", stiffness: 100, damping: 20 } },
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
 };
 
@@ -106,19 +86,27 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+  
+  // LOGICA DEL CURSOR
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
 
-  // --- LÓGICA CATEGORÍAS ---
+  useEffect(() => {
+    const moveCursor = (e: MouseEvent) => {
+      setCursorPos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', moveCursor);
+    return () => window.removeEventListener('mousemove', moveCursor);
+  }, []);
+
+  // Categorías y Filtrado
   const categories = useMemo(() => {
     const allTags = fotos.flatMap(f => f.categories || []);
     return ['todos', ...Array.from(new Set(allTags))];
   }, [fotos]);
 
-  // --- LÓGICA FILTRADO ---
   const filteredFotos = useMemo(() => {
-    const filtered = filter === 'todos' 
-      ? fotos 
-      : fotos.filter((f) => f.categories?.includes(filter));
-    
+    const filtered = filter === 'todos' ? fotos : fotos.filter((f) => f.categories?.includes(filter));
     return [...filtered].sort((a, b) => {
       const colorA = a.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
       const colorB = b.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
@@ -126,6 +114,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     });
   }, [fotos, filter]);
 
+  // Handlers
   const handleOpenModal = useCallback((foto: Foto) => {
     const index = filteredFotos.findIndex(f => f._id === foto._id);
     setCurrentIndex(index);
@@ -184,58 +173,59 @@ export default function Gallery({ fotos }: GalleryProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, isContactOpen, handleCloseModal, goToNext, goToPrevious]);
   
-  // --- EASTER EGG ---
-  useEffect(() => {
-    const hasRun = sessionStorage.getItem('easter_egg_shown');
-    if (!hasRun) {
-      console.log(
-        `%c
-        📷 MARIAN FOTOGRAFÍA
-        ----------------------------------------
-        Explorando la naturaleza y el código.
-        
-        🎨 Arte: Marian
-        💻 Dev:  Delysz (https://github.com/delysz)
-        
-        "La fotografía ayuda a las personas a ver."
-        ----------------------------------------
-        `,
-        'font-family: monospace; font-size: 12px; color: #d4d4d4; background: #171717; padding: 15px; border-radius: 5px; border-left: 4px solid #fff;'
-      );
-      sessionStorage.setItem('easter_egg_shown', 'true');
-    }
-  }, []);
-
   const handleContextMenu = useCallback((e: React.MouseEvent) => e.preventDefault(), []);
 
   return (
     <LayoutGroup>
-      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden">
+      {/* 1. CURSOR PERSONALIZADO */}
+      <motion.div 
+        className="fixed top-0 left-0 w-8 h-8 rounded-full border border-white pointer-events-none z-[100] hidden md:block mix-blend-difference"
+        animate={{ 
+          x: cursorPos.x - 16, 
+          y: cursorPos.y - 16,
+          scale: isHovering ? 2.5 : 1,
+          backgroundColor: isHovering ? "rgba(255,255,255,0.2)" : "transparent"
+        }}
+        transition={{ type: "spring", stiffness: 500, damping: 28 }}
+      />
+      <div className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[100] hidden md:block" style={{ transform: `translate(${cursorPos.x - 4}px, ${cursorPos.y - 4}px)` }} />
+
+      <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden cursor-none">
         
+        {/* 2. EFECTO "NOISE" (TEXTURA DE GRANO) */}
+        <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0 mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+
         {/* HEADER */}
-        <header className="relative text-center mb-16 space-y-4 z-10">
+        <header className="relative text-center mb-20 space-y-4 z-10" onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
           <div className="absolute top-0 right-0 hidden md:block z-50">
             <button onClick={toggleContact} className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors cursor-pointer pointer-events-auto">
               <span>Sobre mí</span>
               <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${isContactOpen ? 'bg-white' : 'bg-transparent border border-gray-600 group-hover:border-white'}`}></span>
             </button>
           </div>
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}>
-            <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90 relative z-0">
-              Marian <span className="text-gray-600 font-light">&</span> Fotografía
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}>
+            <h1 className="text-4xl md:text-6xl font-serif text-white tracking-widest uppercase opacity-90 relative z-0">
+              Marian <span className="text-gray-600 font-light italic">&</span> Fotografía
             </h1>
-            <p className="text-gray-500 text-xs tracking-[0.3em] uppercase relative z-0 mt-4">Portfolio Selecto</p>
+            <motion.div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-gray-500 to-transparent mx-auto mt-6" initial={{ width: 0 }} animate={{ width: 100 }} transition={{ delay: 0.5, duration: 1 }} />
+            <p className="text-gray-500 text-[10px] tracking-[0.4em] uppercase relative z-0 mt-6">Exploradora de la luz y el detalle</p>
           </motion.div>
-          <div className="md:hidden pt-4 relative z-50">
-             <button onClick={toggleContact} className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors">Sobre mí</button>
+          <div className="md:hidden pt-8 relative z-50">
+             <button onClick={toggleContact} className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-6 py-3 rounded-full uppercase cursor-pointer hover:bg-neutral-900 transition-colors">Sobre mí</button>
           </div>
         </header>
 
-        {/* FILTRO DERECHA */}
-        <div className="w-full max-w-7xl mx-auto mb-8 px-1 z-40">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="flex flex-wrap justify-center md:justify-end gap-6 md:gap-8">
+        {/* FILTRO */}
+        <div className="w-full max-w-7xl mx-auto mb-12 px-1 z-40">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="flex flex-wrap justify-center md:justify-end gap-6 md:gap-8">
                 {categories.map((cat) => (
-                    <button key={cat} onClick={() => setFilter(cat)} className={`text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer relative ${filter === cat ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}>
+                    <button 
+                      key={cat} 
+                      onClick={() => setFilter(cat)} 
+                      onMouseEnter={() => setIsHovering(true)} 
+                      onMouseLeave={() => setIsHovering(false)}
+                      className={`text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer relative ${filter === cat ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}
+                    >
                         {cat}
                         {filter === cat && (<motion.div layoutId="activeFilter" className="absolute -bottom-2 left-0 right-0 h-[1px] bg-white" transition={{ type: "spring", stiffness: 300, damping: 30 }} />)}
                     </button>
@@ -256,24 +246,29 @@ export default function Gallery({ fotos }: GalleryProps) {
                     layoutId={`card-${foto._id}`}
                     variants={photoCardVariants}
                     initial="hidden" animate="visible" exit="exit"
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.08 }} // Retraso en cascada
                     onClick={() => handleOpenModal(foto)}
-                    className="relative group cursor-pointer"
+                    className="relative group cursor-none"
+                    onMouseEnter={() => setIsHovering(true)} 
+                    onMouseLeave={() => setIsHovering(false)}
                   >
-                    <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-4 border-white shadow-sm hover:shadow-white/20 transition-shadow duration-300">
+                    <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-0 shadow-lg group-hover:shadow-2xl transition-all duration-500">
                       {foto.imagen && (
                         <Image 
                           src={urlFor(foto.imagen as any).width(800).height(800).fit('crop').url()}
                           alt={foto.titulo || "Fotografía de Marian"}
                           width={800} height={800}
                           onContextMenu={handleContextMenu} draggable={false} 
-                          className="block w-full h-full object-cover transition-all duration-500 grayscale-[20%] contrast-[0.95] group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-[1.05]"
+                          className="block w-full h-full object-cover transition-transform duration-700 ease-in-out grayscale-[100%] contrast-[1.1] group-hover:grayscale-0 group-hover:scale-110"
                         />
                       )}
-                      <motion.div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 pointer-events-none">
-                        <div>
-                          <h3 className="text-white font-serif text-sm tracking-wide relative top-2 group-hover:top-0 transition-all duration-300">{foto.titulo}</h3>
-                          <p className="text-gray-300 text-[10px] mt-1 uppercase tracking-wider relative top-2 group-hover:top-0 transition-all duration-300 delay-75">
+                      {/* OVERLAY SUTIL */}
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                      
+                      <motion.div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6 pointer-events-none">
+                        <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                          <h3 className="text-white font-serif text-lg tracking-wide">{foto.titulo}</h3>
+                          <p className="text-gray-300 text-[9px] mt-1 uppercase tracking-widest opacity-80">
                              {foto.categories && foto.categories.length > 0 ? foto.categories.join(' • ') : ''}
                           </p>
                         </div>
@@ -287,104 +282,108 @@ export default function Gallery({ fotos }: GalleryProps) {
         </div>
 
         {/* FOOTER */}
-        <footer className="mt-20 pt-8 border-t border-neutral-900 text-center space-y-2 z-10">
-          <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">&copy; {new Date().getFullYear()} Marian Fotografía. Todos los derechos reservados.</p>
-          <p className="text-neutral-700 text-[9px]">Prohibida la reproducción total o parcial sin autorización escrita.</p>
-          <a href="https://github.com/delysz" target="_blank" rel="noopener noreferrer" className="inline-block text-neutral-500 text-[9px] tracking-[0.1em] hover:text-neutral-300 transition-colors pt-2 cursor-pointer">design by Delysz</a>
+        <footer className="mt-24 pt-10 border-t border-neutral-900 text-center space-y-4 z-10 pb-10">
+          <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">&copy; {new Date().getFullYear()} Marian Fotografía.</p>
+          <a href="https://github.com/delysz" target="_blank" rel="noopener noreferrer" className="inline-block text-neutral-800 hover:text-neutral-600 transition-colors text-[9px] tracking-widest cursor-pointer" onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>DESIGN BY DELYSZ</a>
         </footer>
 
         {/* MODAL */}
         <AnimatePresence>
           {isModalOpen && selectedFoto && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out">
-              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>)}
-              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToNext(e); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>)}
-              <motion.div layoutId={`card-${selectedFoto._id}`} className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/98 backdrop-blur-md p-4 cursor-none">
+              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-4 text-white/30 hover:text-white rounded-full transition-all cursor-none hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>)}
+              {filteredFotos.length > 1 && (<button onClick={(e) => { e.stopPropagation(); goToNext(e); }} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-4 text-white/30 hover:text-white rounded-full transition-all cursor-none hidden md:block"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>)}
+              
+              <motion.div layoutId={`card-${selectedFoto._id}`} className="relative max-w-7xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 {selectedFoto.imagen && (
                   <>
-                    {!isImageLoaded && (<div className="absolute inset-0 flex items-center justify-center z-0"><div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div></div>)}
+                    {!isImageLoaded && (<div className="absolute inset-0 flex items-center justify-center z-0"><div className="w-10 h-10 border-2 border-neutral-800 border-t-white rounded-full animate-spin"></div></div>)}
                     <Image 
                       key={selectedFoto._id} 
-                      src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).url()} 
-                      alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-full object-contain max-h-[90vh] mx-auto z-10 transition-opacity duration-500 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                      src={urlFor(selectedFoto.imagen as any).width(1920).quality(95).url()} 
+                      alt={selectedFoto.titulo} width={1920} height={1080} quality={95} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-full object-contain max-h-[90vh] mx-auto z-10 transition-opacity duration-700 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                     />
                   </>
                 )}
-                {isImageLoaded && (<button onClick={handleCloseModal} className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors z-30 p-2 rounded-full bg-black/20 hover:bg-black/50 cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>)}
+                {isImageLoaded && (<button onClick={handleCloseModal} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-30 p-2 rounded-full cursor-none"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>)}
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* DRAWER PERFIL / CONTACTO (CORREGIDO SCROLL) */}
+        {/* DRAWER PERFIL / CONTACTO */}
         <AnimatePresence>
           {isContactOpen && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/60 z-[70]" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] cursor-default" />
               
-              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[500px] bg-[#0c0c0c] border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
                 
                 <button onClick={toggleContact} className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800 z-50"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col min-h-full p-10 pt-20">
+                
+                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col min-h-full p-12 pt-24">
                   <motion.div variants={itemVariants}>
                     
-                    <div className="mb-8 relative w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-800 group">
+                    <div className="mb-10 relative w-28 h-28 rounded-full overflow-hidden border border-neutral-800 group shadow-lg">
                          <Image 
                             src="/perfil.jpg" 
                             alt="Marian" 
                             fill 
-                            className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                            onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                                (e.target as HTMLElement).parentElement!.style.display = 'none';
-                            }}
+                            className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
                          />
                     </div>
 
-                    <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Marian</h2>
-                    <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Fotografía y Naturaleza</p>
+                    <h2 className="text-4xl font-serif text-white tracking-widest uppercase mb-3">Marian</h2>
+                    <p className="text-neutral-500 text-xs tracking-[0.4em] uppercase mb-12 border-b border-neutral-900 pb-8">Fotografía y Naturaleza</p>
                   </motion.div>
                   
-                  <motion.div variants={itemVariants} className="mb-12"><p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p></motion.div>
+                  <motion.div variants={itemVariants} className="mb-16">
+                    <p className="text-gray-400 font-light leading-loose text-sm italic">
+                      "Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro."
+                    </p>
+                  </motion.div>
                   
                   {/* REDES */}
-                  <motion.div variants={itemVariants} className="space-y-4">
-                      <a href="mailto:mariaantoniaazucena@gmail.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <div className="flex items-center gap-3">
-                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Mail /></span>
-                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">mariaantoniaazucena@gmail.com</span>
+                  <motion.div variants={itemVariants} className="space-y-6">
+                      <a href="mailto:mariaantoniaazucena@gmail.com" className="group flex items-center justify-between p-4 rounded border border-transparent hover:border-neutral-800 hover:bg-neutral-900/50 transition-all cursor-pointer">
+                        <div className="flex items-center gap-4">
+                            <span className="text-neutral-600 group-hover:text-white transition-colors"><Icons.Mail /></span>
+                            <span className="text-sm font-light text-gray-400 group-hover:text-white tracking-wide">Contactar por Email</span>
                         </div>
-                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                        <span className="text-neutral-700 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
                       </a>
                       
-                      <a href="https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <div className="flex items-center gap-3">
-                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Instagram /></span>
-                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_y_sus_mundos</span>
+                      <a href="https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==" target="_blank" className="group flex items-center justify-between p-4 rounded border border-transparent hover:border-neutral-800 hover:bg-neutral-900/50 transition-all cursor-pointer">
+                        <div className="flex items-center gap-4">
+                            <span className="text-neutral-600 group-hover:text-white transition-colors"><Icons.Instagram /></span>
+                            <span className="text-sm font-light text-gray-400 group-hover:text-white tracking-wide">Instagram</span>
                         </div>
-                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                        <span className="text-neutral-700 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
                       </a>
 
-                      <a href="https://www.facebook.com/profile.php?id=100011486713808" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <div className="flex items-center gap-3">
-                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Facebook /></span>
-                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Facebook</span>
+                      <a href="https://www.facebook.com/profile.php?id=100011486713808" target="_blank" className="group flex items-center justify-between p-4 rounded border border-transparent hover:border-neutral-800 hover:bg-neutral-900/50 transition-all cursor-pointer">
+                        <div className="flex items-center gap-4">
+                            <span className="text-neutral-600 group-hover:text-white transition-colors"><Icons.Facebook /></span>
+                            <span className="text-sm font-light text-gray-400 group-hover:text-white tracking-wide">Facebook</span>
                         </div>
-                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                        <span className="text-neutral-700 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
                       </a>
 
-                      <a href="https://www.flickr.com/" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <div className="flex items-center gap-3">
-                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Flickr /></span>
-                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Flickr</span>
+                      <a href="https://www.flickr.com/" target="_blank" className="group flex items-center justify-between p-4 rounded border border-transparent hover:border-neutral-800 hover:bg-neutral-900/50 transition-all cursor-pointer">
+                        <div className="flex items-center gap-4">
+                            <span className="text-neutral-600 group-hover:text-white transition-colors"><Icons.Flickr /></span>
+                            <span className="text-sm font-light text-gray-400 group-hover:text-white tracking-wide">Flickr</span>
                         </div>
-                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                        <span className="text-neutral-700 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
                       </a>
                   </motion.div>
                   
                   <div className="flex-grow"></div>
-                  <motion.div variants={itemVariants} className="pt-8 border-t border-neutral-800"><p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-1">Base</p><p className="text-white text-sm font-light">Zaragoza, España</p></motion.div>
+                  <motion.div variants={itemVariants} className="pt-12 border-t border-neutral-900">
+                    <p className="text-[10px] text-neutral-600 uppercase tracking-widest mb-2">Base</p>
+                    <p className="text-white text-sm font-light tracking-wide">Zaragoza, España</p>
+                  </motion.div>
                 </motion.div>
               </motion.aside>
             </>
