@@ -338,7 +338,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                 animate={{ letterSpacing: ['0.1em', '0.15em', '0.1em'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
-                Explorando la luz
+                Portafolio Selecto
               </motion.h1>
               <motion.div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-white to-transparent" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 3.8, duration: 1.5, ease: "easeOut" }} />
             </div>
