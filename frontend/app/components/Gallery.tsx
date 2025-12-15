@@ -24,6 +24,9 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // NUEVO ESTADO: Para el modal de Contacto
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Memorizar categorías
   const categories = useMemo(() => {
@@ -40,7 +43,7 @@ export default function Gallery({ fotos }: GalleryProps) {
       : fotos.filter((f) => f.category === filter);
   }, [fotos, filter]);
 
-  // Manejar el modal
+  // Manejar el modal de FOTO
   const handleOpenModal = useCallback((foto: Foto) => {
     setIsImageLoaded(false);
     setSelectedFoto(foto);
@@ -54,20 +57,26 @@ export default function Gallery({ fotos }: GalleryProps) {
     setTimeout(() => setSelectedFoto(null), 300);
   }, []);
 
-  // Manejar tecla Escape
+  // Manejar el modal de CONTACTO
+  const toggleContact = useCallback(() => {
+    const newState = !isContactOpen;
+    setIsContactOpen(newState);
+    document.body.style.overflow = newState ? 'hidden' : 'unset';
+  }, [isContactOpen]);
+
+  // Manejar tecla Escape (Cierra fotos y contacto)
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleCloseModal();
+      if (e.key === 'Escape') {
+        if (isModalOpen) handleCloseModal();
+        if (isContactOpen) toggleContact();
+      }
     };
     
-    if (isModalOpen) {
-      window.addEventListener('keydown', handleEscape);
-    }
-    
+    window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [isModalOpen, handleCloseModal]);
+  }, [isModalOpen, isContactOpen, handleCloseModal, toggleContact]);
 
-  // Función para proteger imágenes
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
   }, []);
@@ -76,16 +85,12 @@ export default function Gallery({ fotos }: GalleryProps) {
     console.error('Error loading image:', e);
   }, []);
 
-  // Cerrar menú al hacer clic fuera
+  // Cerrar menú filtro al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = () => {
       if (isMenuOpen) setIsMenuOpen(false);
     };
-    
-    if (isMenuOpen) {
-      window.addEventListener('click', handleClickOutside);
-    }
-    
+    if (isMenuOpen) window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   }, [isMenuOpen]);
 
@@ -93,19 +98,35 @@ export default function Gallery({ fotos }: GalleryProps) {
     <LayoutGroup>
       <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col">
         
-        {/* --- ENCABEZADO (Título cambiado) --- */}
-        <header className="text-center mb-12 space-y-4">
+        {/* --- ENCABEZADO --- */}
+        <header className="relative text-center mb-12 space-y-4">
+          
+          {/* BOTÓN CONTACTO (Posicionado absoluto a la derecha o centrado en móvil) */}
+          <div className="absolute top-0 right-0 hidden md:block">
+            <button 
+              onClick={toggleContact}
+              className="text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-colors border-b border-transparent hover:border-white pb-1"
+            >
+              Contacto
+            </button>
+          </div>
+
           <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
             Marian <span className="text-gray-600 font-light">&</span> Fotografía
           </h1>
           <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
             Portfolio Selecto
           </p>
-          {filteredFotos.length > 0 && (
-            <p className="text-gray-600 text-sm mt-2">
-              {filteredFotos.length} {filteredFotos.length === 1 ? 'imagen' : 'imágenes'}
-            </p>
-          )}
+          
+          {/* Botón contacto para móvil (debajo del título) */}
+          <div className="md:hidden pt-4">
+             <button 
+              onClick={toggleContact}
+              className="text-xs font-medium tracking-[0.2em] text-gray-400 border border-gray-800 px-4 py-2 rounded-full uppercase"
+            >
+              Contacto
+            </button>
+          </div>
         </header>
 
         {/* --- FILTRO DESPLEGABLE --- */}
@@ -121,14 +142,12 @@ export default function Gallery({ fotos }: GalleryProps) {
                          text-white text-xs font-medium tracking-[0.2em] uppercase 
                          hover:border-neutral-600 transition-colors duration-300
                          focus:outline-none focus:ring-2 focus:ring-neutral-600"
-              aria-label="Filtrar categorías"
-              aria-expanded={isMenuOpen}
             >
               <span>{filter}</span>
               <motion.svg 
                 animate={{ rotate: isMenuOpen ? 180 : 0 }}
                 className="w-4 h-4 text-gray-400" 
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </motion.svg>
@@ -143,10 +162,9 @@ export default function Gallery({ fotos }: GalleryProps) {
                   transition={{ duration: 0.2 }}
                   className="absolute mt-2 w-48 bg-neutral-900 border border-neutral-800 
                              rounded-xl shadow-2xl overflow-hidden z-40"
-                  role="menu"
                 >
                   {categories.map((cat) => (
-                    <li key={cat} role="none">
+                    <li key={cat}>
                       <button
                         onClick={() => {
                           setFilter(cat);
@@ -154,12 +172,11 @@ export default function Gallery({ fotos }: GalleryProps) {
                         }}
                         className={`
                           w-full text-left px-6 py-3 text-xs tracking-[0.2em] uppercase 
-                          transition-colors duration-200 focus:outline-none focus:bg-neutral-800
+                          transition-colors duration-200 
                           ${filter === cat 
                             ? 'bg-white text-black font-bold' 
                             : 'text-gray-400 hover:bg-neutral-800 hover:text-white'}
                         `}
-                        role="menuitem"
                       >
                         {cat}
                       </button>
@@ -171,14 +188,13 @@ export default function Gallery({ fotos }: GalleryProps) {
           </div>
         </div>
 
-        {/* --- GRID UNIFORME (Cuadrado Perfecto con Marco) --- */}
+        {/* --- GRID UNIFORME (Cuadrado Perfecto) --- */}
         <div className="flex-grow">
           {filteredFotos.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-500">No hay imágenes en esta categoría</p>
             </div>
           ) : (
-            // CAMBIO PRINCIPAL: Usamos Grid en lugar de columns, con más gap para los marcos
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
                 {filteredFotos.map((foto) => (
@@ -192,15 +208,10 @@ export default function Gallery({ fotos }: GalleryProps) {
                     onClick={() => handleOpenModal(foto)}
                     className="relative group cursor-pointer"
                   >
-                    {/* AQUÍ ESTÁ LA MAGIA DEL MARCO Y EL TAMAÑO UNIFORME:
-                        1. aspect-square: Fuerza que el contenedor sea un cuadrado perfecto.
-                        2. border-4 border-white: Añade el marco blanco estilo galería.
-                        3. shadow-xl: Un poco de sombra para que el marco resalte del fondo negro.
-                    */}
                     <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-4 border-white shadow-sm hover:shadow-white/20 transition-shadow duration-300">
                       {foto.imagen && (
                         <Image 
-                          src={urlFor(foto.imagen).width(800).height(800).fit('crop').quality(80).url()} // Optimizamos para cuadrado
+                          src={urlFor(foto.imagen).width(800).height(800).fit('crop').quality(80).url()}
                           alt={foto.titulo || "Fotografía de Marian"}
                           width={800}
                           height={800}
@@ -209,13 +220,11 @@ export default function Gallery({ fotos }: GalleryProps) {
                           onError={handleImageError}
                           draggable={false} 
                           loading="lazy"
-                          // 'h-full' y 'object-cover' aseguran que llene el cuadrado sin deformarse
                           className="block w-full h-full object-cover transition-all duration-500 
                                      grayscale-[20%] contrast-[0.95] 
                                      group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-[1.05]"
                         />
                       )}
-                      {/* Overlay dentro del marco */}
                       <motion.div 
                         className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent 
                                    opacity-0 group-hover:opacity-100 transition-opacity duration-300 
@@ -238,7 +247,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </div>
 
-        {/* --- FOOTER CON LINK A GITHUB --- */}
+        {/* --- FOOTER --- */}
         <footer className="mt-20 pt-8 border-t border-neutral-900 text-center space-y-2">
           <p className="text-neutral-600 text-[10px] tracking-[0.2em] uppercase">
             &copy; {new Date().getFullYear()} Marian Fotografía. Todos los derechos reservados.
@@ -246,18 +255,17 @@ export default function Gallery({ fotos }: GalleryProps) {
           <p className="text-neutral-700 text-[9px]">
             Prohibida la reproducción total o parcial sin autorización escrita.
           </p>
-          {/* Nuevo enlace */}
           <a 
             href="https://github.com/delysz" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="inline-block text-neutral-500 text-[9px] tracking-[0.1em] hover:text-neutral-300 transition-colors pt-2"
+            className="inline-block text-neutral-500 text-[9px] tracking-[0.1em] hover:text-neutral-300 transition-colors pt-2 border-b border-transparent hover:border-neutral-500"
           >
             design by Delysz
           </a>
         </footer>
 
-        {/* --- MODAL (LIGHTBOX) --- */}
+        {/* --- MODAL FOTO (LIGHTBOX) --- */}
         <AnimatePresence>
           {isModalOpen && selectedFoto && (
             <motion.div
@@ -266,10 +274,7 @@ export default function Gallery({ fotos }: GalleryProps) {
               exit={{ opacity: 0 }}
               onClick={handleCloseModal}
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out"
-              role="dialog"
-              aria-modal="true"
             >
-              {/* Quitamos el marco blanco en el modal para que la foto se vea limpia a pantalla completa */}
               <motion.div
                 layoutId={`card-${selectedFoto._id}`}
                 className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl"
@@ -290,7 +295,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                       quality={90}
                       priority
                       onContextMenu={handleContextMenu}
-                      onError={handleImageError}
                       draggable={false}
                       onLoadingComplete={() => setIsImageLoaded(true)}
                       className={`
@@ -305,21 +309,14 @@ export default function Gallery({ fotos }: GalleryProps) {
                 {isImageLoaded && (
                   <>
                     <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20 pointer-events-none">
-                      <h2 className="text-2xl text-white font-serif">
-                        {selectedFoto.titulo}
-                      </h2>
-                      <p className="text-gray-400 text-sm uppercase tracking-widest mt-1">
-                        {selectedFoto.category}
-                      </p>
+                      <h2 className="text-2xl text-white font-serif">{selectedFoto.titulo}</h2>
+                      <p className="text-gray-400 text-sm uppercase tracking-widest mt-1">{selectedFoto.category}</p>
                     </div>
                     <button 
                       onClick={handleCloseModal}
-                      className="absolute top-4 right-4 text-white/70 hover:text-white 
-                                 transition-colors z-30 p-2 rounded-full hover:bg-black/30"
-                      aria-label="Cerrar modal"
+                      className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors z-30 p-2"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
-                           strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -329,6 +326,63 @@ export default function Gallery({ fotos }: GalleryProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* --- MODAL CONTACTO (NUEVO) --- */}
+        <AnimatePresence>
+          {isContactOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={toggleContact}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/98 p-6"
+            >
+              <motion.div
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 20, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="max-w-md w-full text-center space-y-8"
+              >
+                {/* Logo o Título en el Modal */}
+                <h2 className="text-3xl font-serif text-white tracking-widest uppercase">
+                  Marian Fotografía
+                </h2>
+                
+                {/* Breve Bio */}
+                <p className="text-gray-400 font-light leading-relaxed">
+                  Capturando la esencia de los momentos efímeros. Especializada en fotografía de retrato y paisaje. Disponible para proyectos editoriales y eventos privados.
+                </p>
+
+                <div className="w-16 h-[1px] bg-neutral-800 mx-auto"></div>
+
+                {/* Enlaces de Contacto */}
+                <div className="space-y-4">
+                  <a href="mailto:tuemail@ejemplo.com" className="block text-white text-lg hover:text-gray-300 transition-colors tracking-wide">
+                    hola@marianfoto.com
+                  </a>
+                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="block text-white text-lg hover:text-gray-300 transition-colors tracking-wide">
+                    @marian_visual
+                  </a>
+                </div>
+
+                {/* Ubicación */}
+                <p className="text-xs text-neutral-600 uppercase tracking-[0.2em] pt-8">
+                  Zaragoza, España
+                </p>
+
+                {/* Botón Cerrar */}
+                <button 
+                  onClick={toggleContact}
+                  className="mt-12 text-gray-500 hover:text-white text-xs uppercase tracking-widest border border-gray-800 px-6 py-3 rounded-full hover:border-white transition-all"
+                >
+                  Cerrar
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </section>
     </LayoutGroup>
   );
