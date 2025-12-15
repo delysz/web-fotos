@@ -1,34 +1,37 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-// Configuración SEO
 export const metadata: Metadata = {
-  // El título que sale en la pestaña y en Google
+  metadataBase: new URL('https://marianfotografia.vercel.app'), 
+
   title: {
     default: "Marian Fotografía",
     template: "%s | Marian Fotografía"
   },
-  // La descripción gris que sale debajo del título
   description: "Portfolio de fotografía artística, paisajes inmensos y fotografía macro en Zaragoza. Explorando la luz y la textura de la naturaleza.",
-  
-  // Palabras clave para ayudar a Google
   keywords: ["fotógrafo zaragoza", "fotografía paisaje", "fotografía macro", "arte visual", "marian fotografía", "naturaleza aragón"],
-  
-  // Autores y creador
   authors: [{ name: "Marian" }],
   creator: "Marian",
-  
-  // Para que se vea bonito al compartir en WhatsApp/Twitter/LinkedIn
+
+  // Configuración para WhatsApp/Redes
   openGraph: {
     title: "Marian Fotografía | Portfolio Selecto",
     description: "Exploradora de la luz y el entorno natural. Paisaje y Macro.",
-    url: "https://www.marianfotografia.vercel.app", // PON TU DOMINIO REAL AQUÍ
+    url: "https://marianfotografia.vercel.app",
     siteName: "Marian Fotografía",
     locale: "es_ES",
     type: "website",
+    // 👇 2. AQUÍ FORZAMOS A QUE COJA LA IMAGEN
+    images: [
+      {
+        url: '/opengraph-image.jpg', // Asegúrate de que tu foto se llame así en la carpeta app
+        width: 1200,
+        height: 630,
+        alt: 'Portfolio de Marian Fotografía',
+      },
+    ],
   },
   
-  // Instrucciones para robots
   robots: {
     index: true,
     follow: true,
