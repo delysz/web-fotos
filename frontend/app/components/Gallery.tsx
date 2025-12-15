@@ -28,7 +28,6 @@ interface SanityImage {
 export interface Foto {
   _id: string;
   titulo: string;
-  // CAMBIO 1: Ahora esperamos un array (lista) de textos
   categories: string[]; 
   imagen: SanityImage;
   width?: number;
@@ -39,7 +38,7 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
-// --- UTILIDAD: HEX a HUE (Color a Número 0-360) ---
+// --- UTILIDAD: HEX a HUE ---
 function getHue(hex: string): number {
   if (!hex || typeof hex !== 'string') return 0;
   const cleanHex = hex.replace('#', '');
@@ -92,17 +91,14 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
-  // CAMBIO 2: Lógica para sacar categorías únicas de listas (Arrays)
+  // --- LÓGICA CATEGORÍAS ---
   const categories = useMemo(() => {
-    // flatMap une todas las listas de todas las fotos en una sola gran lista
     const allTags = fotos.flatMap(f => f.categories || []);
-    // Set elimina los duplicados
     return ['todos', ...Array.from(new Set(allTags))];
   }, [fotos]);
 
-  // --- LÓGICA DE FILTRADO Y ORDENAMIENTO ---
+  // --- LÓGICA FILTRADO ---
   const filteredFotos = useMemo(() => {
-    // CAMBIO 3: Usamos .includes() porque ahora es una lista
     const filtered = filter === 'todos' 
       ? fotos 
       : fotos.filter((f) => f.categories?.includes(filter));
@@ -172,7 +168,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, isContactOpen, handleCloseModal, goToNext, goToPrevious]);
   
-// --- EASTER EGG ---
+  // --- EASTER EGG ---
   useEffect(() => {
     const hasRun = sessionStorage.getItem('easter_egg_shown');
     if (!hasRun) {
@@ -251,7 +247,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <div className="relative w-full aspect-square overflow-hidden bg-neutral-900 border-4 border-white shadow-sm hover:shadow-white/20 transition-shadow duration-300">
                       {foto.imagen && (
                         <Image 
-                          // ¡OJO! 'as any' aquí es clave para que TS no se pelee con Sanity
                           src={urlFor(foto.imagen as any).width(800).height(800).fit('crop').url()}
                           alt={foto.titulo || "Fotografía de Marian"}
                           width={800} height={800}
@@ -262,7 +257,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                       <motion.div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 pointer-events-none">
                         <div>
                           <h3 className="text-white font-serif text-sm tracking-wide relative top-2 group-hover:top-0 transition-all duration-300">{foto.titulo}</h3>
-                          {/* CAMBIO 4: Mostrar las categorías unidas por un punto */}
                           <p className="text-gray-300 text-[10px] mt-1 uppercase tracking-wider relative top-2 group-hover:top-0 transition-all duration-300 delay-75">
                              {foto.categories && foto.categories.length > 0 ? foto.categories.join(' • ') : ''}
                           </p>
@@ -295,7 +289,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                     {!isImageLoaded && (<div className="absolute inset-0 flex items-center justify-center z-0"><div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div></div>)}
                     <Image 
                       key={selectedFoto._id} 
-                      // Aquí también usamos 'as any' para el modal
                       src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).url()} 
                       alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-full object-contain max-h-[90vh] mx-auto z-10 transition-opacity duration-500 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                     />
@@ -307,7 +300,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* DRAWER CONTACTO */}
+        {/* DRAWER CONTACTO (ACTUALIZADO) */}
         <AnimatePresence>
           {isContactOpen && (
             <>
@@ -317,13 +310,34 @@ export default function Gallery({ fotos }: GalleryProps) {
                 <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col h-full mt-10">
                   <motion.div variants={itemVariants}>
                     <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Marian</h2>
-                    <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Visual Artist & Photographer</p>
+                    {/* CAMBIO 1: Título humilde y descriptivo */}
+                    <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Fotografía y Naturaleza</p>
                   </motion.div>
                   <motion.div variants={itemVariants} className="mb-12"><p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p></motion.div>
+                  
+                  {/* CAMBIO 2: Redes Sociales reales */}
                   <motion.div variants={itemVariants} className="space-y-4">
-                      <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
-                      <a href="https://instagram.com" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"><span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_fotografia</span><span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span></a>
+                      <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span>
+                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                      </a>
+                      
+                      <a href="https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_y_sus_mundos</span>
+                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                      </a>
+
+                      <a href="https://www.facebook.com/profile.php?id=100011486713808" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Facebook</span>
+                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                      </a>
+
+                      <a href="https://www.flickr.com/" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
+                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Flickr</span>
+                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                      </a>
                   </motion.div>
+                  
                   <div className="flex-grow"></div>
                   <motion.div variants={itemVariants} className="pt-8 border-t border-neutral-800"><p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-1">Base</p><p className="text-white text-sm font-light">Zaragoza, España</p></motion.div>
                 </motion.div>
