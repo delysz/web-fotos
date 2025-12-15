@@ -3,10 +3,10 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-// AÑADIDO: Importamos 'Variants' para solucionar el error de TypeScript
+// Importamos Variants para el tipado correcto
 import { motion, AnimatePresence, LayoutGroup, Variants } from 'framer-motion';
 
-// --- TUS INTERFACES ---
+// --- INTERFACES ---
 interface Foto {
   _id: string;
   titulo: string;
@@ -20,13 +20,15 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
-// --- VARIANTES DE ANIMACIÓN (Corregidas con el tipo : Variants) ---
+// --- VARIANTES DE ANIMACIÓN PRO ---
+
+// Animación del cajón de contacto lateral
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0.5 },
   visible: { 
     x: '0%', 
     opacity: 1,
-    transition: { type: 'spring', damping: 25, stiffness: 200 } 
+    transition: { type: 'spring', damping: 30, stiffness: 300 } 
   },
   exit: { 
     x: '100%', 
@@ -35,23 +37,41 @@ const drawerVariants: Variants = {
   }
 };
 
+// Animación para los elementos de texto dentro del contacto
 const itemVariants: Variants = {
   hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1 }
+  visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
 };
 
+// Contenedor para escalonar (stagger) los elementos de texto
 const containerVariants: Variants = {
   visible: {
     transition: {
-      staggerChildren: 0.1, // Efecto cascada
+      staggerChildren: 0.1,
       delayChildren: 0.2
     }
   }
 };
 
+// NUEVO: Animación para las fotos del GRID (Entrada sutil hacia arriba)
+const photoCardVariants: Variants = {
+  hidden: { opacity: 0, y: 50, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: { type: "spring", stiffness: 100, damping: 20 }
+  },
+  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
+};
+
+
 export default function Gallery({ fotos }: GalleryProps) {
   const [filter, setFilter] = useState<string>('todos');
   const [selectedFoto, setSelectedFoto] = useState<Foto | null>(null);
+  // NUEVO: Índice actual para la navegación
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,18 +92,54 @@ export default function Gallery({ fotos }: GalleryProps) {
       : fotos.filter((f) => f.category === filter);
   }, [fotos, filter]);
 
-  // Manejadores
+
+  // --- LÓGICA DE NAVEGACIÓN (Next/Prev) ---
+
+  // Función para abrir el modal y establecer el índice inicial
   const handleOpenModal = useCallback((foto: Foto) => {
-    setIsImageLoaded(false);
+    // Encontramos el índice de la foto clickada dentro de la lista filtrada actual
+    const index = filteredFotos.findIndex(f => f._id === foto._id);
+    setCurrentIndex(index);
     setSelectedFoto(foto);
+    setIsImageLoaded(false);
     setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
-  }, []);
+  }, [filteredFotos]);
+
+  // Ir a la siguiente foto (con loop)
+  const goToNext = useCallback((e?: Event) => {
+    e?.stopPropagation();
+    if (currentIndex === -1 || filteredFotos.length === 0) return;
+    
+    const nextIndex = (currentIndex + 1) % filteredFotos.length;
+    setCurrentIndex(nextIndex);
+    setSelectedFoto(filteredFotos[nextIndex]);
+    setIsImageLoaded(false); // Resetear carga para el spinner
+  }, [currentIndex, filteredFotos]);
+
+  // Ir a la foto anterior (con loop)
+  const goToPrevious = useCallback((e?: Event) => {
+    e?.stopPropagation();
+    if (currentIndex === -1 || filteredFotos.length === 0) return;
+
+    // Lógica para el loop hacia atrás: si es 0, vamos al último
+    const prevIndex = currentIndex === 0 ? filteredFotos.length - 1 : currentIndex - 1;
+    setCurrentIndex(prevIndex);
+    setSelectedFoto(filteredFotos[prevIndex]);
+    setIsImageLoaded(false);
+  }, [currentIndex, filteredFotos]);
+
+
+  // --- MANEJADORES DE CIERRE Y TECLADO ---
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     document.body.style.overflow = 'unset';
-    setTimeout(() => setSelectedFoto(null), 300);
+    // Reseteamos estados después de la animación de cierre
+    setTimeout(() => {
+      setSelectedFoto(null);
+      setCurrentIndex(-1);
+    }, 300);
   }, []);
 
   const toggleContact = useCallback(() => {
@@ -94,20 +150,25 @@ export default function Gallery({ fotos }: GalleryProps) {
     });
   }, []);
 
+  // Manejo de Teclado (Escape y Flechas)
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isModalOpen) handleCloseModal();
-        if (isContactOpen) {
-             setIsContactOpen(false);
-             document.body.style.overflow = 'unset';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isModalOpen) {
+        switch (e.key) {
+          case 'Escape': handleCloseModal(); break;
+          case 'ArrowRight': goToNext(); break;
+          case 'ArrowLeft': goToPrevious(); break;
         }
+      } else if (isContactOpen && e.key === 'Escape') {
+          setIsContactOpen(false);
+          document.body.style.overflow = 'unset';
       }
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isModalOpen, isContactOpen, handleCloseModal]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, isContactOpen, handleCloseModal, goToNext, goToPrevious]);
 
+  // Cerrar menú filtro al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = () => { if (isMenuOpen) setIsMenuOpen(false); };
     if (isMenuOpen) window.addEventListener('click', handleClickOutside);
@@ -132,12 +193,15 @@ export default function Gallery({ fotos }: GalleryProps) {
             </button>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90 relative z-0">
-            Marian <span className="text-gray-600 font-light">&</span> Fotografía
-          </h1>
-          <p className="text-gray-500 text-xs tracking-[0.3em] uppercase relative z-0">
-            Portfolio Selecto
-          </p>
+          {/* Animación sutil de entrada para el título */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}>
+            <h1 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90 relative z-0">
+              Marian <span className="text-gray-600 font-light">&</span> Fotografía
+            </h1>
+            <p className="text-gray-500 text-xs tracking-[0.3em] uppercase relative z-0 mt-4">
+              Portfolio Selecto
+            </p>
+          </motion.div>
           
           <div className="md:hidden pt-4 relative z-50">
              <button 
@@ -150,7 +214,10 @@ export default function Gallery({ fotos }: GalleryProps) {
         </header>
 
         {/* --- FILTRO --- */}
-        <div className="relative flex justify-center mb-16 z-40">
+        <motion.div 
+          className="relative flex justify-center mb-16 z-40"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+        >
           <div className="relative inline-block text-left">
             <button
               onClick={(e) => {
@@ -206,9 +273,9 @@ export default function Gallery({ fotos }: GalleryProps) {
               )}
             </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
 
-        {/* --- GRID FOTOS --- */}
+        {/* --- GRID FOTOS (Con nuevas animaciones) --- */}
         <div className="flex-grow z-0">
           {filteredFotos.length === 0 ? (
             <div className="text-center py-20">
@@ -216,15 +283,19 @@ export default function Gallery({ fotos }: GalleryProps) {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              {/* Usamos popLayout para que al filtrar las fotos se reordenen suavemente */}
               <AnimatePresence mode="popLayout">
-                {filteredFotos.map((foto) => (
+                {filteredFotos.map((foto, index) => (
                   <motion.article
-                    layoutId={`card-${foto._id}`}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
                     key={foto._id}
+                    layoutId={`card-${foto._id}`} // Identificador para la transición mágica al modal
+                    // Aplicamos las nuevas variantes de animación PRO
+                    variants={photoCardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    // Añadimos un delay basado en el índice para el efecto "cascada"
+                    transition={{ delay: index * 0.05 }}
                     onClick={() => handleOpenModal(foto)}
                     className="relative group cursor-pointer"
                   >
@@ -282,7 +353,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           </a>
         </footer>
 
-        {/* --- MODAL FOTO --- */}
+        {/* --- MODAL FOTO (LIGHTBOX) CON NAVEGACIÓN --- */}
         <AnimatePresence>
           {isModalOpen && selectedFoto && (
             <motion.div
@@ -292,10 +363,38 @@ export default function Gallery({ fotos }: GalleryProps) {
               onClick={handleCloseModal}
               className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 cursor-zoom-out"
             >
+              {/* --- BOTÓN ANTERIOR (<) --- */}
+              {filteredFotos.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block"
+                  aria-label="Imagen anterior"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                  </svg>
+                </button>
+              )}
+
+              {/* --- BOTÓN SIGUIENTE (>) --- */}
+              {filteredFotos.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); goToNext(); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer hidden md:block"
+                  aria-label="Imagen siguiente"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Contenedor de la imagen principal */}
               <motion.div
+                // Usamos el ID para que Framer Motion sepa que esta es la misma foto que la del grid y haga la transición
                 layoutId={`card-${selectedFoto._id}`}
                 className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center overflow-hidden shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()} // Evitar cerrar al hacer clic en la foto
               >
                 {selectedFoto.imagen && (
                   <>
@@ -304,7 +403,9 @@ export default function Gallery({ fotos }: GalleryProps) {
                         <div className="w-10 h-10 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div>
                       </div>
                     )}
+                    {/* Usamos 'key' aquí para forzar a React a que renderice una nueva imagen cuando cambiamos de ID */}
                     <Image 
+                      key={selectedFoto._id}
                       src={urlFor(selectedFoto.imagen).width(1920).quality(90).url()}
                       alt={selectedFoto.titulo}
                       width={1920}
@@ -337,25 +438,15 @@ export default function Gallery({ fotos }: GalleryProps) {
         <AnimatePresence>
           {isContactOpen && (
             <>
-              {/* Overlay oscuro (SIN BLUR) */}
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={toggleContact}
-                className="fixed inset-0 bg-black/60 z-[70]"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={toggleContact} className="fixed inset-0 bg-black/60 z-[70]"
               />
-
-              {/* Panel lateral derecho */}
               <motion.aside
-                variants={drawerVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
+                variants={drawerVariants} initial="hidden" animate="visible" exit="exit"
                 className="fixed top-0 right-0 z-[80] h-full w-full md:w-[450px] bg-[#0f0f0f] border-l border-neutral-800 shadow-2xl p-10 flex flex-col justify-between"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Botón Cerrar */}
                 <button 
                   onClick={toggleContact}
                   className="absolute top-6 right-6 p-2 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800"
@@ -364,70 +455,31 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-
-                {/* Contenido animado */}
                 <motion.div 
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
+                  variants={containerVariants} initial="hidden" animate="visible"
                   className="flex flex-col h-full mt-10"
                 >
-                  {/* Título */}
                   <motion.div variants={itemVariants}>
-                    <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">
-                      Marian
-                    </h2>
-                    <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">
-                      Visual Artist & Photographer
-                    </p>
+                    <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Marian</h2>
+                    <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Visual Artist & Photographer</p>
                   </motion.div>
-                  
-                  {/* Bio */}
                   <motion.div variants={itemVariants} className="mb-12">
                     <p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">
-                      Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro, buscando siempre la textura, el color y el detalle orgánico que a menudo pasa desapercibido.
+                      Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.
                     </p>
                   </motion.div>
-
-                  {/* Links */}
                   <motion.div variants={itemVariants} className="space-y-4">
-                    <a 
-                      href="mailto:hola@marianfoto.com" 
-                      className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 bg-neutral-950 rounded-md text-gray-400 group-hover:text-white transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                          </svg>
-                        </div>
+                    {/* Links de contacto (resumidos para no alargar) */}
+                     <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
                         <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span>
-                      </div>
-                      <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
                     </a>
-
-                    <a 
-                      href="https://instagram.com" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center gap-4">
-                         <div className="p-2 bg-neutral-950 rounded-md text-gray-400 group-hover:text-white transition-colors">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                            </svg>
-                        </div>
+                     <a href="https://instagram.com" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
                         <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_fotografia</span>
-                      </div>
-                      <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
+                        <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
                     </a>
                   </motion.div>
-
                   <div className="flex-grow"></div>
-
                   <motion.div variants={itemVariants} className="pt-8 border-t border-neutral-800">
                     <p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-1">Base</p>
                     <p className="text-white text-sm font-light">Zaragoza, España</p>
