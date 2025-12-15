@@ -29,10 +29,10 @@ export default function Gallery({ fotos }: { fotos: Foto[] }) {
       {/* --- ENCABEZADO "FIRMA MARIAN" --- */}
       <div className="text-center mb-16 space-y-4">
         <h2 className="text-4xl md:text-5xl font-serif text-white tracking-widest uppercase opacity-90">
-          Marian <span className="text-gray-600 font-light">&</span> Visual
+          Marian <span className="text-gray-600 font-light">&</span> Fotografía
         </h2>
         <p className="text-gray-500 text-xs tracking-[0.3em] uppercase">
-          Portfolio Selecto 2024
+          Portfolio Selecto
         </p>
       </div>
 

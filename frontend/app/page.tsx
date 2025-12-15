@@ -1,12 +1,10 @@
 export const dynamic = 'force-dynamic';
 
 import { client } from "@/sanity/client";
-import Gallery from "./components/Gallery"; // <--- Aquí traemos el Ferrari
+import Gallery from "./components/Gallery"; 
 
 // Service: Fetch de datos
 async function getFotos() {
-  // Query GROQ
-  // IMPORTANTE: Aquí añadimos la línea de la categoría para que los filtros funcionen
   return client.fetch(`
     *[_type == "portfolio"] | order(_createdAt desc) {
       _id,
@@ -21,16 +19,10 @@ export default async function Home() {
   const fotos = await getFotos();
 
   return (
-    <main className="min-h-screen p-10 bg-black text-white">
-      <h1 className="text-4xl font-bold mb-10 text-center font-serif">
-        Marian Foto Estudio
-      </h1>
-      
-      {/* ANTES: Tenías aquí un <div> con un map...
-         AHORA: Usamos el componente Gallery y le pasamos las fotos
-      */}
+    // Quitamos clases de estilo aquí (ni p-10, ni bg-black).
+    // Dejamos que el componente Gallery controle todo el diseño.
+    <main>
       <Gallery fotos={fotos} />
-      
     </main>
   );
 }
