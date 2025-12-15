@@ -64,6 +64,22 @@ function getHue(hex: string): number {
   return h;
 }
 
+// --- ICONOS SVG ---
+const Icons = {
+  Mail: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+  ),
+  Instagram: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+  ),
+  Facebook: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+  ),
+  Flickr: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="12" r="3"/><circle cx="16" cy="12" r="3"/></svg>
+  )
+};
+
 // --- VARIANTES DE ANIMACIÓN ---
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0.5 },
@@ -300,7 +316,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* DRAWER CONTACTO (ACTUALIZADO) */}
+        {/* DRAWER CONTACTO (ACTUALIZADO CON ICONOS) */}
         <AnimatePresence>
           {isContactOpen && (
             <>
@@ -310,30 +326,41 @@ export default function Gallery({ fotos }: GalleryProps) {
                 <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col h-full mt-10">
                   <motion.div variants={itemVariants}>
                     <h2 className="text-3xl font-serif text-white tracking-widest uppercase mb-2">Marian</h2>
-                    {/* CAMBIO 1: Título humilde y descriptivo */}
                     <p className="text-neutral-500 text-xs tracking-[0.3em] uppercase mb-10">Fotografía y Naturaleza</p>
                   </motion.div>
                   <motion.div variants={itemVariants} className="mb-12"><p className="text-gray-300 font-light leading-relaxed text-sm md:text-base border-l-2 border-neutral-700 pl-4">Exploradora de la luz y el entorno natural. Mi obra transita entre la inmensidad del paisaje abierto y la delicadeza del mundo macro.</p></motion.div>
                   
-                  {/* CAMBIO 2: Redes Sociales reales */}
+                  {/* REDES CON ICONOS */}
                   <motion.div variants={itemVariants} className="space-y-4">
-                      <a href="mailto:hola@marianfoto.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">hola@marianfoto.com</span>
+                      <a href="mailto:mariaantoniaazucena@gmail.com" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
+                        <div className="flex items-center gap-3">
+                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Mail /></span>
+                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">mariaantoniaazucena@gmail.com</span>
+                        </div>
                         <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
                       </a>
                       
                       <a href="https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_y_sus_mundos</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Instagram /></span>
+                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">@marian_y_sus_mundos</span>
+                        </div>
                         <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
                       </a>
 
                       <a href="https://www.facebook.com/profile.php?id=100011486713808" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Facebook</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Facebook /></span>
+                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Facebook</span>
+                        </div>
                         <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
                       </a>
 
                       <a href="https://www.flickr.com/" target="_blank" className="group flex items-center justify-between p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 transition-all cursor-pointer">
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Flickr</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-neutral-500 group-hover:text-white transition-colors"><Icons.Flickr /></span>
+                            <span className="text-sm font-medium text-gray-300 group-hover:text-white tracking-wide">Flickr</span>
+                        </div>
                         <span className="text-neutral-600 group-hover:translate-x-1 transition-transform">→</span>
                       </a>
                   </motion.div>
