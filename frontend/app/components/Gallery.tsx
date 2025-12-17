@@ -24,14 +24,36 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
-// --- UTILIDADES DE COLOR AVANZADAS ---
-// Convierte HEX a HSL (Matiz, Saturación, Luminosidad)
+// --- UTILIDADES ---
+function getHue(hex: string): number {
+  if (!hex || typeof hex !== 'string') return 0;
+  const cleanHex = hex.replace('#', '');
+  let r = 0, g = 0, b = 0;
+  if (cleanHex.length === 3) {
+    r = parseInt("0x" + cleanHex[0] + cleanHex[0]);
+    g = parseInt("0x" + cleanHex[1] + cleanHex[1]);
+    b = parseInt("0x" + cleanHex[2] + cleanHex[2]);
+  } else if (cleanHex.length === 6) {
+    r = parseInt("0x" + cleanHex.substring(0, 2));
+    g = parseInt("0x" + cleanHex.substring(2, 4));
+    b = parseInt("0x" + cleanHex.substring(4, 6));
+  }
+  r /= 255; g /= 255; b /= 255;
+  const cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin;
+  let h = 0;
+  if (delta === 0) h = 0;
+  else if (cmax === r) h = ((g - b) / delta) % 6;
+  else if (cmax === g) h = (b - r) / delta + 2;
+  else h = (r - g) / delta + 4;
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+  return h;
+}
+
 function hexToHSL(hex: string) {
   let r = 0, g = 0, b = 0;
   if (!hex) return { h: 0, s: 0, l: 0 };
-
   const cleanHex = hex.replace('#', '');
-  
   if (cleanHex.length === 3) {
     r = parseInt("0x" + cleanHex[0] + cleanHex[0]) / 255;
     g = parseInt("0x" + cleanHex[1] + cleanHex[1]) / 255;
@@ -41,28 +63,15 @@ function hexToHSL(hex: string) {
     g = parseInt("0x" + cleanHex.substring(2, 4)) / 255;
     b = parseInt("0x" + cleanHex.substring(4, 6)) / 255;
   }
-
   const cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin;
-  let h = 0, s = 0, l = 0;
-
-  // Calcular Hue
+  let h = 0, s = 0, l = (cmax + cmin) / 2;
   if (delta === 0) h = 0;
   else if (cmax === r) h = ((g - b) / delta) % 6;
   else if (cmax === g) h = (b - r) / delta + 2;
   else h = (r - g) / delta + 4;
-  h = Math.round(h * 60);
-  if (h < 0) h += 360;
-
-  // Calcular Lightness
-  l = (cmax + cmin) / 2;
-
-  // Calcular Saturation
+  h = Math.round(h * 60); if (h < 0) h += 360;
   s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
-  
-  // Convertir a porcentajes
-  s = +(s * 100).toFixed(1);
-  l = +(l * 100).toFixed(1);
-
+  s = +(s * 100).toFixed(1); l = +(l * 100).toFixed(1);
   return { h, s, l };
 }
 
@@ -75,7 +84,6 @@ const Icons = {
   ChevronLeft: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>),
   ChevronRight: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>),
   X: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18M6 6l12 12"/></svg>),
-  Heart: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>),
   ImageIcon: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>),
   Aperture: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>)
 };
@@ -197,7 +205,7 @@ export default function Gallery({ fotos }: GalleryProps) {
     return ['todos', ...Array.from(new Set(allTags))];
   }, [fotos]);
 
-  // --- ALGORITMO DE ORDENACIÓN INTELIGENTE ---
+  // ALGORITMO ORDENACIÓN
   const filteredFotos = useMemo(() => {
     const filtered = filter === 'todos' ? fotos : fotos.filter((f) => f.categories?.includes(filter));
     
@@ -208,23 +216,22 @@ export default function Gallery({ fotos }: GalleryProps) {
       const hslA = hexToHSL(colorA);
       const hslB = hexToHSL(colorB);
 
-      // 1. Separar Grises/Negros/Blancos (Saturación baja)
-      const isGrayA = hslA.s < 15; // Si tiene menos de 15% de saturación, es gris
+      // Separar Grises
+      const isGrayA = hslA.s < 15;
       const isGrayB = hslB.s < 15;
 
-      if (isGrayA && !isGrayB) return 1; // Mover grises al final
+      if (isGrayA && !isGrayB) return 1;
       if (!isGrayA && isGrayB) return -1;
 
-      // 2. Ordenar Grises por Luminosidad (Oscuro a Claro)
-      if (isGrayA && isGrayB) {
-        return hslA.l - hslB.l;
-      }
+      // Ordenar Grises por Luminosidad
+      if (isGrayA && isGrayB) return hslA.l - hslB.l;
 
-      // 3. Ordenar Colores por Matiz (Arcoíris)
+      // Ordenar Colores por Matiz
       return hslA.h - hslB.h;
     });
   }, [fotos, filter]);
 
+  // Handlers
   const handleOpenModal = useCallback((foto: Foto) => {
     const index = filteredFotos.findIndex(f => f._id === foto._id);
     setCurrentIndex(index);
@@ -499,23 +506,15 @@ export default function Gallery({ fotos }: GalleryProps) {
                         </div>
                       )}
                       <div ref={modalImageRef} className="relative z-10 transition-opacity duration-500">
-                        <Image key={selectedFoto._id} src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).format('webp').url()} alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-auto max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} />
+                        <Image key={selectedFoto._id} src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).format('webp').url()} alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-2xl transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} />
                       </div>
                     </>
                   )}
                 </div>
+                {/* Info de la foto SIN DATOS EXIF */}
                 {isImageLoaded && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 text-center max-w-2xl w-full">
                     <h3 className="text-white text-3xl font-serif mb-1 tracking-wide">{selectedFoto.titulo}</h3>
-                    <div className="flex justify-center items-center gap-4 mb-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] font-medium border-b border-white/10 pb-6 mx-auto max-w-xs">
-                        <span className="flex items-center gap-1"><Icons.Aperture size={12} /> f/2.8</span>
-                        <span>•</span>
-                        <span>1/200s</span>
-                        <span>•</span>
-                        <span>ISO 100</span>
-                        <span>•</span>
-                        <span>700D</span>
-                    </div>
                     <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-gray-400">
                       {selectedFoto.categories?.map((cat) => (<span key={cat} className="px-4 py-1.5 bg-white/5 border border-white/5 rounded-full text-[10px] tracking-widest uppercase hover:bg-white/10 transition-colors">{cat}</span>))}
                     </div>
@@ -531,12 +530,13 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* DRAWER PERFIL */}
+        {/* DRAWER PERFIL - SCROLL ARREGLADO */}
         <AnimatePresence>
           {isContactOpen && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] cursor-default" />
-              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+              {/* Aquí usamos h-[100dvh] para altura real en móviles y overflow-y-auto */}
+              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-[100dvh] w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
                 
                 <motion.button onClick={toggleContact} className="absolute top-6 right-6 p-3 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800/50 backdrop-blur-sm z-50 border border-white/10" whileHover={{ rotate: 90, scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Icons.X size={20} />
