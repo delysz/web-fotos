@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { urlFor } from '@/sanity/client'; 
-import { motion, AnimatePresence, LayoutGroup, Variants, useInView, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup, Variants, useScroll, useTransform, useSpring } from 'framer-motion';
 
 // --- INTERFACES ---
 interface SanityPalette { dominant?: { background?: string; }; }
@@ -64,7 +64,7 @@ const Icons = {
   Aperture: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>)
 };
 
-// --- VARIANTES DE ANIMACIÓN ---
+// --- VARIANTES ---
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0 },
   visible: { 
@@ -87,16 +87,15 @@ const itemVariants: Variants = {
 };
 
 const photoCardVariants: Variants = {
-  hidden: { opacity: 0, y: 60, scale: 0.9, filter: "blur(10px)" },
+  hidden: { opacity: 0, y: 60, scale: 0.9, filter: "blur(10px)", rotateX: 10 },
   visible: { 
-    opacity: 1, y: 0, scale: 1, filter: "blur(0px)",
+    opacity: 1, y: 0, scale: 1, filter: "blur(0px)", rotateX: 0,
     transition: { type: "spring", stiffness: 120, damping: 20, mass: 0.5 } 
   },
-  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.25 } },
+  exit: { opacity: 0, scale: 0.9, rotateX: -10, transition: { duration: 0.25 } },
   hover: { y: -10, scale: 1.02, transition: { type: "spring", stiffness: 400, damping: 25 } }
 };
 
-// ANIMACIÓN DEL MODAL (POP-UP LIMPIO)
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.9 },
   visible: { 
@@ -106,7 +105,7 @@ const modalVariants: Variants = {
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
 };
 
-// --- PRELOADER (CINE) ---
+// --- PRELOADER ---
 const Preloader = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <motion.div 
@@ -174,15 +173,15 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
    
+  const modalImageRef = useRef<HTMLDivElement>(null);
+
   // Scroll animations
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.9]);
   const headerScale = useTransform(scrollY, [0, 100], [1, 0.98]);
   const headerSpring = useSpring(headerScale, { stiffness: 100, damping: 30 });
 
-  // InView
-  const gridRef = useRef<HTMLDivElement>(null);
-  const gridInView = useInView(gridRef, { once: true, amount: 0.1 });
+  // NOTA: Hemos eliminado gridInView para que no dependa del scroll inicial y funcione siempre en móvil
 
   // Categorías y Filtrado
   const categories = useMemo(() => {
@@ -278,7 +277,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         
         <FloatingParticles />
         
-        {/* NOISE BACKGROUND */}
+        {/* NOISE */}
         <motion.div 
           className="fixed inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
@@ -367,7 +366,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         </motion.div>
 
         {/* GRID */}
-        <div ref={gridRef} className="flex-grow z-0">
+        <div className="flex-grow z-0">
           {filteredFotos.length === 0 ? (
             <motion.div className="text-center py-32" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="w-16 h-16 text-gray-800 mx-auto mb-6"><Icons.ImageIcon size={64} /></div>
@@ -380,12 +379,15 @@ export default function Gallery({ fotos }: GalleryProps) {
                   return (
                     <motion.article
                       key={foto._id}
-                      // 👇 IMPORTANTE: Quitamos layoutId de aquí para evitar el bug de "hueco blanco"
                       variants={photoCardVariants}
-                      initial="hidden" animate={gridInView ? "visible" : "hidden"} exit="exit" whileHover="hover"
+                      // 👇 CAMBIO IMPORTANTE: whileInView funciona siempre, incluso en carga inicial móvil
+                      initial="hidden" 
+                      whileInView="visible"
+                      viewport={{ once: true, margin: "-50px" }}
+                      exit="exit" 
+                      whileHover="hover"
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
-                      transition={{ delay: index * 0.05, type: "spring" }}
                       onClick={() => handleOpenModal(foto)}
                       className="relative cursor-pointer"
                     >
@@ -398,7 +400,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                               alt={foto.titulo || "Fotografía de Marian"}
                               width={800} height={800}
                               onContextMenu={handleContextMenu} draggable={false}
-                              // 👇 "sizes" optimiza la carga en móviles y evita saltos
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                               className="block w-full h-full object-cover transition-all duration-1000 ease-out grayscale-[50%] contrast-[1.1] group-hover:grayscale-0 group-hover:scale-110 group-hover:contrast-[1.2]"
                               onLoadingComplete={() => setIsImageLoaded(true)}
@@ -418,6 +419,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                           </div>
                         </motion.div>
                       </div>
+                      <motion.div className="absolute -bottom-4 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-50" animate={hoveredIndex === index ? { scaleX: [0, 1, 0], opacity: [0, 0.5, 0] } : {}} transition={hoveredIndex === index ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}} />
                     </motion.article>
                   );
                 })}
@@ -456,12 +458,12 @@ export default function Gallery({ fotos }: GalleryProps) {
           </div>
         </motion.footer>
 
-        {/* MODAL (LIMPIO Y RÁPIDO) */}
+        {/* MODAL */}
         <AnimatePresence>
           {isModalOpen && selectedFoto && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 cursor-zoom-out">
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`, backgroundSize: '40px 40px' }} />
               
-              {/* Botones de navegación */}
               {filteredFotos.length > 1 && (
                 <>
                   <motion.button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-50 p-4 text-white/50 hover:text-white rounded-full transition-all cursor-pointer hidden md:flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 hover:border-white/30" whileHover={{ scale: 1.1, x: -5 }} whileTap={{ scale: 0.9 }}>
@@ -473,73 +475,59 @@ export default function Gallery({ fotos }: GalleryProps) {
                 </>
               )}
               
-              {/* Contenido del Modal (Animación Pop-up) */}
-              <motion.div 
-                variants={modalVariants} 
-                initial="hidden" 
-                animate="visible" 
-                exit="exit" 
-                className="relative max-w-7xl w-full max-h-[90vh] flex flex-col items-center justify-center overflow-hidden" 
-                onClick={(e) => e.stopPropagation()}
-              >
+              <motion.div variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="relative max-w-7xl w-full max-h-[90vh] flex flex-col items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 <div className="relative w-full h-full flex items-center justify-center">
                   {selectedFoto.imagen && (
                     <>
-                      {/* Spinner de carga */}
                       {!isImageLoaded && (
                         <div className="absolute inset-0 flex items-center justify-center z-0">
-                          <div className="relative"><div className="w-16 h-16 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div></div>
+                          <div className="relative"><div className="w-16 h-16 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div><div className="absolute inset-0 flex items-center justify-center"><Icons.Aperture size={24} /></div></div>
                         </div>
                       )}
-                      
-                      {/* Imagen Grande */}
-                      <div className="relative z-10">
-                        <Image 
-                          key={selectedFoto._id} 
-                          src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).format('webp').url()} 
-                          alt={selectedFoto.titulo} 
-                          width={1920} height={1080} quality={90} priority 
-                          onContextMenu={handleContextMenu} draggable={false} 
-                          onLoadingComplete={() => setIsImageLoaded(true)} 
-                          className={`w-full h-auto max-h-[85vh] object-contain rounded-sm shadow-2xl transition-all duration-500 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`} 
-                        />
+                      <div ref={modalImageRef} className="relative z-10 transition-opacity duration-500">
+                        <Image key={selectedFoto._id} src={urlFor(selectedFoto.imagen as any).width(1920).quality(100).format('webp').url()} alt={selectedFoto.titulo} width={1920} height={1080} quality={100} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-auto max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} />
                       </div>
                     </>
                   )}
                 </div>
-                
-                {/* Info de la foto */}
                 {isImageLoaded && (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 text-center max-w-2xl">
-                    <h3 className="text-white text-2xl font-serif mb-2">{selectedFoto.titulo}</h3>
-                    <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-2">
-                        {selectedFoto.categories?.map((cat) => (<span key={cat} className="px-3 py-1 bg-white/5 rounded-full text-xs tracking-widest">{cat}</span>))}
-                      </div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 text-center max-w-2xl w-full">
+                    <h3 className="text-white text-3xl font-serif mb-1 tracking-wide">{selectedFoto.titulo}</h3>
+                    <div className="flex justify-center items-center gap-4 mb-6 text-[10px] text-gray-500 uppercase tracking-[0.2em] font-medium border-b border-white/10 pb-6 mx-auto max-w-xs">
+                        <span className="flex items-center gap-1"><Icons.Aperture size={12} /> f/2.8</span>
+                        <span>•</span>
+                        <span>1/200s</span>
+                        <span>•</span>
+                        <span>ISO 100</span>
+                        <span>•</span>
+                        <span>700D</span>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-gray-400">
+                      {selectedFoto.categories?.map((cat) => (<span key={cat} className="px-4 py-1.5 bg-white/5 border border-white/5 rounded-full text-[10px] tracking-widest uppercase hover:bg-white/10 transition-colors">{cat}</span>))}
                     </div>
                   </motion.div>
                 )}
               </motion.div>
-
-              {/* Botón Cerrar */}
-              <motion.button onClick={handleCloseModal} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-30 p-3 rounded-full cursor-pointer bg-black/30 backdrop-blur-sm border border-white/10 hover:border-white/30" whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}>
-                <Icons.X size={24} />
-              </motion.button>
+              {isImageLoaded && (
+                <motion.button onClick={handleCloseModal} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-30 p-3 rounded-full cursor-pointer bg-black/30 backdrop-blur-sm border border-white/10 hover:border-white/30" whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}>
+                  <Icons.X size={24} />
+                </motion.button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* DRAWER PERFIL (SCROLL ARREGLADO) */}
+        {/* DRAWER PERFIL */}
         <AnimatePresence>
           {isContactOpen && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] cursor-default" />
               <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
-                
+                <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-white/3 to-transparent rounded-full translate-x-1/2 translate-y-1/2" />
                 <motion.button onClick={toggleContact} className="absolute top-6 right-6 p-3 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800/50 backdrop-blur-sm z-50 border border-white/10" whileHover={{ rotate: 90, scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Icons.X size={20} />
                 </motion.button>
-                
                 <div className="flex flex-col min-h-full p-8 md:p-12 pt-24">
                   <motion.div variants={itemVariants} className="mb-12">
                     <div className="relative mb-10">
@@ -563,7 +551,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                         </ul>
                       </div>
                       <div className="space-y-2">
-                        {/* EQUIPO REAL (CANON 700D) */}
                         <h4 className="text-white text-sm tracking-widest uppercase">Equipo</h4>
                         <ul className="text-gray-400 text-sm space-y-1">
                           <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/50 rounded-full" /> Canon 700D</li>
