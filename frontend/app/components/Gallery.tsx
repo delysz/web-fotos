@@ -271,10 +271,28 @@ export default function Gallery({ fotos }: GalleryProps) {
   const toggleContact = useCallback(() => {
     setIsContactOpen(prev => {
       const newState = !prev;
-      document.body.style.overflow = newState ? 'hidden' : 'unset';
+      // IMPORTANTE: NO tocamos el body overflow aquí, lo hace el useEffect de abajo
       return newState;
     });
   }, []);
+
+  // 👇 BLOQUEO DE SCROLL MÁS AGRESIVO PARA EL MENÚ LATERAL
+  useEffect(() => {
+    if (isContactOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden'; // Bloquea también el HTML (útil para móviles)
+    } else {
+      // Solo desbloqueamos si NO hay un modal abierto
+      if (!isModalOpen) {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      }
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isContactOpen, isModalOpen]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -292,7 +310,6 @@ export default function Gallery({ fotos }: GalleryProps) {
         }
       } else if (isContactOpen && e.key === 'Escape') {
         setIsContactOpen(false);
-        document.body.style.overflow = 'unset';
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -511,7 +528,6 @@ export default function Gallery({ fotos }: GalleryProps) {
                     </>
                   )}
                 </div>
-                {/* Info de la foto SIN DATOS EXIF */}
                 {isImageLoaded && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 text-center max-w-2xl w-full">
                     <h3 className="text-white text-3xl font-serif mb-1 tracking-wide">{selectedFoto.titulo}</h3>
@@ -530,13 +546,21 @@ export default function Gallery({ fotos }: GalleryProps) {
           )}
         </AnimatePresence>
 
-        {/* DRAWER PERFIL - SCROLL ARREGLADO */}
+        {/* DRAWER PERFIL */}
         <AnimatePresence>
           {isContactOpen && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] cursor-default" />
-              {/* Aquí usamos h-[100dvh] para altura real en móviles y overflow-y-auto */}
-              <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-[100dvh] w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+              {/* 👇 SCROLL ARREGLADO + ATRIBUTO LENIS */}
+              <motion.aside 
+                data-lenis-prevent 
+                variants={drawerVariants} 
+                initial="hidden" 
+                animate="visible" 
+                exit="exit" 
+                className="fixed top-0 right-0 z-[80] h-[100dvh] w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" 
+                onClick={(e) => e.stopPropagation()}
+              >
                 
                 <motion.button onClick={toggleContact} className="absolute top-6 right-6 p-3 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800/50 backdrop-blur-sm z-50 border border-white/10" whileHover={{ rotate: 90, scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Icons.X size={20} />
