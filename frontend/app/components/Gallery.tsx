@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { urlFor } from '@/sanity/client'; 
+import { urlFor } from '@/sanity/client';
 import { motion, AnimatePresence, LayoutGroup, Variants, useScroll, useTransform, useSpring } from 'framer-motion';
 
 // --- INTERFACES ---
@@ -14,7 +14,7 @@ interface SanityImage { asset: SanityAsset; }
 export interface Foto {
   _id: string;
   titulo: string;
-  categories: string[]; 
+  categories: string[];
   imagen: SanityImage;
   width?: number;
   height?: number;
@@ -77,15 +77,15 @@ function hexToHSL(hex: string) {
 
 // --- ICONOS ---
 const Icons = {
-  Mail: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>),
-  Instagram: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>),
-  Facebook: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>),
-  Flickr: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="8" cy="12" r="3"/><circle cx="16" cy="12" r="3"/></svg>),
-  ChevronLeft: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>),
-  ChevronRight: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>),
-  X: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18M6 6l12 12"/></svg>),
-  ImageIcon: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>),
-  Aperture: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>)
+  Mail: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>),
+  Instagram: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>),
+  Facebook: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>),
+  Flickr: ({ size = 18, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="8" cy="12" r="3" /><circle cx="16" cy="12" r="3" /></svg>),
+  ChevronLeft: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6" /></svg>),
+  ChevronRight: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6" /></svg>),
+  X: ({ size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18M6 6l12 12" /></svg>),
+  ImageIcon: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>),
+  Aperture: ({ size = 16, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><line x1="14.31" y1="8" x2="20.05" y2="17.94" /><line x1="9.69" y1="8" x2="21.17" y2="8" /><line x1="7.38" y1="12" x2="13.12" y2="2.06" /><line x1="9.69" y1="16" x2="3.95" y2="6.06" /><line x1="14.31" y1="16" x2="2.83" y2="16" /><line x1="16.62" y1="12" x2="10.88" y2="21.94" /></svg>)
 };
 
 // --- VARIANTES ---
@@ -99,7 +99,7 @@ const gridContainerVariants: Variants = {
 
 const photoCardVariants: Variants = {
   hidden: { opacity: 0, y: 50, scale: 0.95 },
-  visible: { 
+  visible: {
     opacity: 1, y: 0, scale: 1,
     transition: { type: "spring", stiffness: 100, damping: 20 }
   },
@@ -128,7 +128,7 @@ const modalVariants: Variants = {
 // --- PRELOADER ---
 const Preloader = ({ onComplete }: { onComplete: () => void }) => {
   return (
-    <motion.div 
+    <motion.div
       className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
       initial={{ y: 0 }}
       animate={{ y: "-100%" }}
@@ -136,7 +136,7 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
       onAnimationComplete={onComplete}
     >
       <div className="overflow-hidden text-center px-4">
-        <motion.h1 
+        <motion.h1
           className="text-5xl md:text-8xl font-serif text-white tracking-widest uppercase"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -144,7 +144,7 @@ const Preloader = ({ onComplete }: { onComplete: () => void }) => {
         >
           Marian
         </motion.h1>
-        <motion.div 
+        <motion.div
           className="h-[1px] bg-white mt-6 mx-auto"
           initial={{ width: 0 }}
           animate={{ width: "100%" }}
@@ -192,7 +192,7 @@ export default function Gallery({ fotos }: GalleryProps) {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-   
+
   const modalImageRef = useRef<HTMLDivElement>(null);
 
   const { scrollY } = useScroll();
@@ -208,11 +208,11 @@ export default function Gallery({ fotos }: GalleryProps) {
   // ALGORITMO ORDENACIÓN
   const filteredFotos = useMemo(() => {
     const filtered = filter === 'todos' ? fotos : fotos.filter((f) => f.categories?.includes(filter));
-    
+
     return [...filtered].sort((a, b) => {
       const colorA = a.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
       const colorB = b.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
-      
+
       const hslA = hexToHSL(colorA);
       const hslB = hexToHSL(colorB);
 
@@ -324,11 +324,11 @@ export default function Gallery({ fotos }: GalleryProps) {
       {loading && <Preloader onComplete={() => setLoading(false)} />}
 
       <section className="bg-[#0a0a0a] min-h-screen pt-20 pb-10 px-4 sm:px-8 select-none flex flex-col relative overflow-x-hidden">
-        
+
         <FloatingParticles />
-        
+
         {/* NOISE */}
-        <motion.div 
+        <motion.div
           className="fixed inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
           animate={{ opacity: [0.02, 0.03, 0.02] }}
@@ -336,7 +336,7 @@ export default function Gallery({ fotos }: GalleryProps) {
         />
 
         {/* HEADER */}
-        <motion.header 
+        <motion.header
           className="fixed top-0 left-0 right-0 text-center pt-8 pb-4 px-4 sm:px-8 z-50 backdrop-blur-md"
           style={{ opacity: headerOpacity, scale: headerSpring, background: isScrolled ? 'rgba(10, 10, 10, 0.8)' : 'transparent', borderBottom: isScrolled ? '1px solid rgba(255, 255, 255, 0.05)' : 'none' }}
           animate={{ paddingTop: isScrolled ? '1.5rem' : '2rem', paddingBottom: isScrolled ? '1rem' : '1.5rem' }}
@@ -348,8 +348,8 @@ export default function Gallery({ fotos }: GalleryProps) {
               <p className="text-gray-500 text-[8px] tracking-[0.3em] uppercase mt-1">Fotografía</p>
             </motion.div>
 
-            <motion.button 
-              onClick={toggleContact} 
+            <motion.button
+              onClick={toggleContact}
               className="group flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-gray-400 hover:text-white uppercase transition-all cursor-pointer relative"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -358,7 +358,7 @@ export default function Gallery({ fotos }: GalleryProps) {
               transition={{ delay: 3 }}
             >
               <span className="hidden md:block">Sobre mí</span>
-              <motion.span 
+              <motion.span
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border ${isContactOpen ? 'bg-white text-black border-white' : 'bg-transparent border-gray-600 group-hover:border-white'}`}
                 animate={{ rotate: isContactOpen ? 180 : 0 }}
                 transition={{ duration: 0.3 }}
@@ -370,26 +370,32 @@ export default function Gallery({ fotos }: GalleryProps) {
         </motion.header>
 
         {/* HERO */}
+        {/* HERO */}
         <div className="relative mt-32 mb-20 text-center z-10">
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 3 }}>
             <div className="relative inline-block">
-              <motion.h1 
+
+              {/* 👇 AQUÍ EL TÍTULO EN LATÍN */}
+              <motion.h1
                 className="text-5xl md:text-7xl lg:text-8xl font-serif text-white tracking-tight uppercase opacity-90"
                 animate={{ letterSpacing: ['0.1em', '0.15em', '0.1em'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
-                Explorando la luz
+                ESSENTIA
               </motion.h1>
+
               <motion.div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-white to-transparent" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 3.8, duration: 1.5, ease: "easeOut" }} />
             </div>
+
+            {/* 👇 SUBTÍTULO MÁS SOLEMNE */}
             <motion.p className="text-gray-500 text-sm tracking-[0.3em] uppercase mt-12 max-w-2xl mx-auto leading-relaxed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.2, duration: 1 }}>
-              Capturando momentos únicos donde la naturaleza y la emoción se encuentran
+              Colección personal de fotografía & naturaleza
             </motion.p>
           </motion.div>
         </div>
 
         {/* FILTRO */}
-        <motion.div 
+        <motion.div
           className="w-full max-w-7xl mx-auto mb-16 px-1 z-40 sticky top-32 bg-[#0a0a0a]/90 backdrop-blur-sm py-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -397,9 +403,9 @@ export default function Gallery({ fotos }: GalleryProps) {
         >
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
             {categories.map((cat, index) => (
-              <motion.button 
-                key={cat} 
-                onClick={() => setFilter(cat)} 
+              <motion.button
+                key={cat}
+                onClick={() => setFilter(cat)}
                 className={`text-xs px-5 py-3 rounded-full font-medium tracking-[0.15em] uppercase transition-all duration-300 cursor-pointer relative overflow-hidden group ${filter === cat ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white border border-gray-800 hover:border-gray-600'}`}
                 whileHover={{ scale: 1.05, y: -2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
                 whileTap={{ scale: 0.95 }}
@@ -422,7 +428,7 @@ export default function Gallery({ fotos }: GalleryProps) {
               <p className="text-gray-600 tracking-widest uppercase text-sm">No hay imágenes en esta categoría</p>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               variants={gridContainerVariants}
               initial="hidden"
               animate="visible"
@@ -434,7 +440,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <motion.article
                       key={foto._id}
                       variants={photoCardVariants}
-                      exit="exit" 
+                      exit="exit"
                       whileHover="hover"
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
@@ -443,7 +449,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                     >
                       <div className="relative w-full aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-900 to-black border border-neutral-900 shadow-2xl shadow-black/50 group-hover:shadow-white/10 transition-all duration-700">
                         {foto.imagen && (
-                          <Image 
+                          <Image
                             src={urlFor(foto.imagen as any).width(800).quality(80).format('webp').url()}
                             alt={foto.titulo || "Fotografía de Marian"}
                             width={800} height={800}
@@ -475,9 +481,9 @@ export default function Gallery({ fotos }: GalleryProps) {
             </div>
             <div className="flex items-center gap-6">
               {[
-                  { name: 'Instagram', url: 'https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==' },
-                  { name: 'Facebook', url: 'https://www.facebook.com/profile.php?id=100011486713808' },
-                  { name: 'Email', url: 'mailto:mariaantoniaazucena@gmail.com' }
+                { name: 'Instagram', url: 'https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==' },
+                { name: 'Facebook', url: 'https://www.facebook.com/profile.php?id=100011486713808' },
+                { name: 'Email', url: 'mailto:mariaantoniaazucena@gmail.com' }
               ].map((social, i) => (
                 <motion.a key={social.name} href={social.url} target="_blank" className="text-neutral-600 hover:text-white transition-colors cursor-pointer" whileHover={{ y: -3, scale: 1.1 }} whileTap={{ scale: 0.95 }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                   {social.name === 'Instagram' && <Icons.Instagram size={20} />}
@@ -501,7 +507,7 @@ export default function Gallery({ fotos }: GalleryProps) {
           {isModalOpen && selectedFoto && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 cursor-zoom-out">
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`, backgroundSize: '40px 40px' }} />
-              
+
               {filteredFotos.length > 1 && (
                 <>
                   <motion.button onClick={(e) => { e.stopPropagation(); goToPrevious(e); }} className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-50 p-4 text-white/50 hover:text-white rounded-full transition-all cursor-pointer hidden md:flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 hover:border-white/30" whileHover={{ scale: 1.1, x: -5 }} whileTap={{ scale: 0.9 }}>
@@ -512,7 +518,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                   </motion.button>
                 </>
               )}
-              
+
               <motion.div variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="relative max-w-7xl w-full max-h-[90vh] flex flex-col items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 <div className="relative w-full h-full flex items-center justify-center">
                   {selectedFoto.imagen && (
@@ -552,20 +558,20 @@ export default function Gallery({ fotos }: GalleryProps) {
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] cursor-default" />
               {/* 👇 SCROLL ARREGLADO + ATRIBUTO LENIS */}
-              <motion.aside 
-                data-lenis-prevent 
-                variants={drawerVariants} 
-                initial="hidden" 
-                animate="visible" 
-                exit="exit" 
-                className="fixed top-0 right-0 z-[80] h-[100dvh] w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" 
+              <motion.aside
+                data-lenis-prevent
+                variants={drawerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="fixed top-0 right-0 z-[80] h-[100dvh] w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default"
                 onClick={(e) => e.stopPropagation()}
               >
-                
+
                 <motion.button onClick={toggleContact} className="absolute top-6 right-6 p-3 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800/50 backdrop-blur-sm z-50 border border-white/10" whileHover={{ rotate: 90, scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Icons.X size={20} />
                 </motion.button>
-                
+
                 <div className="flex flex-col min-h-full p-8 md:p-12 pt-24">
                   <motion.div variants={itemVariants} className="mb-12">
                     <div className="relative mb-10">
