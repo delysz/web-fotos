@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@sanity/image-url": "^2.0.2",
+    "@studio-freight/react-lenis": "^0.0.47",
     "framer-motion": "^12.23.26",
     "next": "16.0.10",
     "next-sanity": "^11.6.10",
