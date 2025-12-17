@@ -24,30 +24,46 @@ interface GalleryProps {
   fotos: Foto[];
 }
 
-// --- UTILIDADES ---
-function getHue(hex: string): number {
-  if (!hex || typeof hex !== 'string') return 0;
-  const cleanHex = hex.replace('#', '');
+// --- UTILIDADES DE COLOR AVANZADAS ---
+// Convierte HEX a HSL (Matiz, Saturación, Luminosidad)
+function hexToHSL(hex: string) {
   let r = 0, g = 0, b = 0;
+  if (!hex) return { h: 0, s: 0, l: 0 };
+
+  const cleanHex = hex.replace('#', '');
+  
   if (cleanHex.length === 3) {
-    r = parseInt("0x" + cleanHex[0] + cleanHex[0]);
-    g = parseInt("0x" + cleanHex[1] + cleanHex[1]);
-    b = parseInt("0x" + cleanHex[2] + cleanHex[2]);
+    r = parseInt("0x" + cleanHex[0] + cleanHex[0]) / 255;
+    g = parseInt("0x" + cleanHex[1] + cleanHex[1]) / 255;
+    b = parseInt("0x" + cleanHex[2] + cleanHex[2]) / 255;
   } else if (cleanHex.length === 6) {
-    r = parseInt("0x" + cleanHex.substring(0, 2));
-    g = parseInt("0x" + cleanHex.substring(2, 4));
-    b = parseInt("0x" + cleanHex.substring(4, 6));
+    r = parseInt("0x" + cleanHex.substring(0, 2)) / 255;
+    g = parseInt("0x" + cleanHex.substring(2, 4)) / 255;
+    b = parseInt("0x" + cleanHex.substring(4, 6)) / 255;
   }
-  r /= 255; g /= 255; b /= 255;
+
   const cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin;
-  let h = 0;
+  let h = 0, s = 0, l = 0;
+
+  // Calcular Hue
   if (delta === 0) h = 0;
   else if (cmax === r) h = ((g - b) / delta) % 6;
   else if (cmax === g) h = (b - r) / delta + 2;
   else h = (r - g) / delta + 4;
   h = Math.round(h * 60);
   if (h < 0) h += 360;
-  return h;
+
+  // Calcular Lightness
+  l = (cmax + cmin) / 2;
+
+  // Calcular Saturation
+  s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+  
+  // Convertir a porcentajes
+  s = +(s * 100).toFixed(1);
+  l = +(l * 100).toFixed(1);
+
+  return { h, s, l };
 }
 
 // --- ICONOS ---
@@ -65,43 +81,39 @@ const Icons = {
 };
 
 // --- VARIANTES ---
+const gridContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
+};
+
+const photoCardVariants: Variants = {
+  hidden: { opacity: 0, y: 50, scale: 0.95 },
+  visible: { 
+    opacity: 1, y: 0, scale: 1,
+    transition: { type: "spring", stiffness: 100, damping: 20 }
+  },
+  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } },
+  hover: { y: -10, scale: 1.02, transition: { type: "spring", stiffness: 400, damping: 25 } }
+};
+
 const drawerVariants: Variants = {
   hidden: { x: '100%', opacity: 0 },
-  visible: { 
-    x: '0%', opacity: 1, 
-    transition: { type: 'spring', damping: 25, stiffness: 300, when: "beforeChildren", staggerChildren: 0.1 } 
-  },
-  exit: { 
-    x: '100%', opacity: 0, 
-    transition: { ease: 'easeInOut', duration: 0.4, when: "afterChildren", staggerChildren: 0.05, staggerDirection: -1 } 
-  }
+  visible: { x: '0%', opacity: 1, transition: { type: 'spring', damping: 25, stiffness: 300, when: "beforeChildren", staggerChildren: 0.1 } },
+  exit: { x: '100%', opacity: 0, transition: { ease: 'easeInOut', duration: 0.4 } }
 };
 
 const itemVariants: Variants = {
   hidden: { y: 30, opacity: 0, scale: 0.95 },
-  visible: { 
-    y: 0, opacity: 1, scale: 1,
-    transition: { type: "spring", stiffness: 100, damping: 15 } 
-  },
+  visible: { y: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 100, damping: 15 } },
   exit: { y: 30, opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
-};
-
-const photoCardVariants: Variants = {
-  hidden: { opacity: 0, y: 60, scale: 0.9, filter: "blur(10px)", rotateX: 10 },
-  visible: { 
-    opacity: 1, y: 0, scale: 1, filter: "blur(0px)", rotateX: 0,
-    transition: { type: "spring", stiffness: 120, damping: 20, mass: 0.5 } 
-  },
-  exit: { opacity: 0, scale: 0.9, rotateX: -10, transition: { duration: 0.25 } },
-  hover: { y: -10, scale: 1.02, transition: { type: "spring", stiffness: 400, damping: 25 } }
 };
 
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.9 },
-  visible: { 
-    opacity: 1, scale: 1,
-    transition: { type: "spring", damping: 25, stiffness: 300 }
-  },
+  visible: { opacity: 1, scale: 1, transition: { type: "spring", damping: 25, stiffness: 300 } },
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
 };
 
@@ -175,30 +187,44 @@ export default function Gallery({ fotos }: GalleryProps) {
    
   const modalImageRef = useRef<HTMLDivElement>(null);
 
-  // Scroll animations
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.9]);
   const headerScale = useTransform(scrollY, [0, 100], [1, 0.98]);
   const headerSpring = useSpring(headerScale, { stiffness: 100, damping: 30 });
 
-  // NOTA: Hemos eliminado gridInView para que no dependa del scroll inicial y funcione siempre en móvil
-
-  // Categorías y Filtrado
   const categories = useMemo(() => {
     const allTags = fotos.flatMap(f => f.categories || []);
     return ['todos', ...Array.from(new Set(allTags))];
   }, [fotos]);
 
+  // --- ALGORITMO DE ORDENACIÓN INTELIGENTE ---
   const filteredFotos = useMemo(() => {
     const filtered = filter === 'todos' ? fotos : fotos.filter((f) => f.categories?.includes(filter));
+    
     return [...filtered].sort((a, b) => {
       const colorA = a.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
       const colorB = b.imagen?.asset?.metadata?.palette?.dominant?.background || '#000000';
-      return getHue(colorA) - getHue(colorB);
+      
+      const hslA = hexToHSL(colorA);
+      const hslB = hexToHSL(colorB);
+
+      // 1. Separar Grises/Negros/Blancos (Saturación baja)
+      const isGrayA = hslA.s < 15; // Si tiene menos de 15% de saturación, es gris
+      const isGrayB = hslB.s < 15;
+
+      if (isGrayA && !isGrayB) return 1; // Mover grises al final
+      if (!isGrayA && isGrayB) return -1;
+
+      // 2. Ordenar Grises por Luminosidad (Oscuro a Claro)
+      if (isGrayA && isGrayB) {
+        return hslA.l - hslB.l;
+      }
+
+      // 3. Ordenar Colores por Matiz (Arcoíris)
+      return hslA.h - hslB.h;
     });
   }, [fotos, filter]);
 
-  // Handlers
   const handleOpenModal = useCallback((foto: Foto) => {
     const index = filteredFotos.findIndex(f => f._id === foto._id);
     setCurrentIndex(index);
@@ -332,7 +358,6 @@ export default function Gallery({ fotos }: GalleryProps) {
               </motion.h1>
               <motion.div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-white to-transparent" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 3.8, duration: 1.5, ease: "easeOut" }} />
             </div>
-            
             <motion.p className="text-gray-500 text-sm tracking-[0.3em] uppercase mt-12 max-w-2xl mx-auto leading-relaxed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.2, duration: 1 }}>
               Capturando momentos únicos donde la naturaleza y la emoción se encuentran
             </motion.p>
@@ -373,17 +398,18 @@ export default function Gallery({ fotos }: GalleryProps) {
               <p className="text-gray-600 tracking-widest uppercase text-sm">No hay imágenes en esta categoría</p>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
+            <motion.div 
+              variants={gridContainerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto"
+            >
               <AnimatePresence mode="popLayout">
                 {filteredFotos.map((foto, index) => {
                   return (
                     <motion.article
                       key={foto._id}
                       variants={photoCardVariants}
-                      // 👇 CAMBIO IMPORTANTE: whileInView funciona siempre, incluso en carga inicial móvil
-                      initial="hidden" 
-                      whileInView="visible"
-                      viewport={{ once: true, margin: "-50px" }}
                       exit="exit" 
                       whileHover="hover"
                       onMouseEnter={() => setHoveredIndex(index)}
@@ -392,39 +418,27 @@ export default function Gallery({ fotos }: GalleryProps) {
                       className="relative cursor-pointer"
                     >
                       <div className="relative w-full aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-900 to-black border border-neutral-900 shadow-2xl shadow-black/50 group-hover:shadow-white/10 transition-all duration-700">
-                        <motion.div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100" animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} />
                         {foto.imagen && (
-                          <>
-                            <Image 
-                              src={urlFor(foto.imagen as any).width(800).quality(80).format('webp').url()}
-                              alt={foto.titulo || "Fotografía de Marian"}
-                              width={800} height={800}
-                              onContextMenu={handleContextMenu} draggable={false}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              className="block w-full h-full object-cover transition-all duration-1000 ease-out grayscale-[50%] contrast-[1.1] group-hover:grayscale-0 group-hover:scale-110 group-hover:contrast-[1.2]"
-                              onLoadingComplete={() => setIsImageLoaded(true)}
-                              priority={index < 4}
-                            />
-                          </>
+                          <Image 
+                            src={urlFor(foto.imagen as any).width(800).quality(80).format('webp').url()}
+                            alt={foto.titulo || "Fotografía de Marian"}
+                            width={800} height={800}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="block w-full h-full object-cover transition-all duration-1000 ease-out grayscale-[50%] contrast-[1.1] group-hover:grayscale-0 group-hover:scale-110 group-hover:contrast-[1.2]"
+                            onLoadingComplete={() => setIsImageLoaded(true)}
+                            priority={index < 4}
+                          />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700" />
-                        <motion.div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-full group-hover:translate-y-0 transition-all duration-700 ease-out" initial={false}>
-                          <div className="space-y-3">
-                            <h3 className="text-white font-serif text-2xl tracking-wide">{foto.titulo}</h3>
-                            <div className="flex flex-wrap gap-2">
-                              {foto.categories?.map((cat, i) => (
-                                <motion.span key={cat} className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-white text-[10px] tracking-widest uppercase border border-white/10" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}>{cat}</motion.span>
-                              ))}
-                            </div>
-                          </div>
+                        <motion.div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-full group-hover:translate-y-0 transition-all duration-700 ease-out">
+                          <h3 className="text-white font-serif text-2xl tracking-wide">{foto.titulo}</h3>
                         </motion.div>
                       </div>
-                      <motion.div className="absolute -bottom-4 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-50" animate={hoveredIndex === index ? { scaleX: [0, 1, 0], opacity: [0, 0.5, 0] } : {}} transition={hoveredIndex === index ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}} />
                     </motion.article>
                   );
                 })}
               </AnimatePresence>
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -481,11 +495,11 @@ export default function Gallery({ fotos }: GalleryProps) {
                     <>
                       {!isImageLoaded && (
                         <div className="absolute inset-0 flex items-center justify-center z-0">
-                          <div className="relative"><div className="w-16 h-16 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div><div className="absolute inset-0 flex items-center justify-center"><Icons.Aperture size={24} /></div></div>
+                          <div className="relative"><div className="w-16 h-16 border-4 border-neutral-800 border-t-white rounded-full animate-spin"></div></div>
                         </div>
                       )}
                       <div ref={modalImageRef} className="relative z-10 transition-opacity duration-500">
-                        <Image key={selectedFoto._id} src={urlFor(selectedFoto.imagen as any).width(1920).quality(100).format('webp').url()} alt={selectedFoto.titulo} width={1920} height={1080} quality={100} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-auto max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} />
+                        <Image key={selectedFoto._id} src={urlFor(selectedFoto.imagen as any).width(1920).quality(90).format('webp').url()} alt={selectedFoto.titulo} width={1920} height={1080} quality={90} priority onContextMenu={handleContextMenu} draggable={false} onLoadingComplete={() => setIsImageLoaded(true)} className={`w-full h-auto max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} />
                       </div>
                     </>
                   )}
@@ -523,11 +537,11 @@ export default function Gallery({ fotos }: GalleryProps) {
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={toggleContact} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] cursor-default" />
               <motion.aside variants={drawerVariants} initial="hidden" animate="visible" exit="exit" className="fixed top-0 right-0 z-[80] h-full w-full md:w-[600px] bg-gradient-to-b from-[#0c0c0c] to-black border-l border-neutral-900 shadow-2xl overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
-                <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-white/5 to-transparent rounded-full -translate-x-1/2 -translate-y-1/2" />
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-white/3 to-transparent rounded-full translate-x-1/2 translate-y-1/2" />
+                
                 <motion.button onClick={toggleContact} className="absolute top-6 right-6 p-3 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-neutral-800/50 backdrop-blur-sm z-50 border border-white/10" whileHover={{ rotate: 90, scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Icons.X size={20} />
                 </motion.button>
+                
                 <div className="flex flex-col min-h-full p-8 md:p-12 pt-24">
                   <motion.div variants={itemVariants} className="mb-12">
                     <div className="relative mb-10">
