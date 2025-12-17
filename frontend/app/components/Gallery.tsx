@@ -610,7 +610,7 @@ export default function Gallery({ fotos }: GalleryProps) {
                       { icon: <Icons.Mail size={20} />, label: 'Email', href: 'mailto:mariaantoniaazucena@gmail.com' },
                       { icon: <Icons.Instagram size={20} />, label: 'Instagram', href: 'https://www.instagram.com/marian_y_sus_mundos?igsh=MXg0YmM3dDhjNnM1cQ==' },
                       { icon: <Icons.Facebook size={20} />, label: 'Facebook', href: 'https://www.facebook.com/profile.php?id=100011486713808' },
-                      { icon: <Icons.Flickr size={20} />, label: 'Flickr', href: 'https://www.flickr.com/' }
+                      { icon: <Icons.Flickr size={20} />, label: 'Flickr', href: 'https://www.flickr.com/photos/185707559@N06/' }
                     ].map((link, i) => (
                       <motion.a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between p-5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer bg-gradient-to-r from-transparent to-white/5" whileHover={{ x: 10 }} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}>
                         <div className="flex items-center gap-5">
